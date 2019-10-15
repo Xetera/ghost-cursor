@@ -1,0 +1,17 @@
+{
+  "name": "mouse_data",
+  "version": "1.0.0",
+  "description": "",
+  "main": "spoof.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "noisejs": "^2.1.0",
+    "p5": "^0.10.2",
+    "simplex-noise": "^2.4.0"
+  }
+}
