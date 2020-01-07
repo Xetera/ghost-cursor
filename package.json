@@ -1,5 +1,5 @@
 {
-  "name": "mouse_data",
+  "name": "ghost-cursor",
   "version": "1.0.0",
   "description": "",
   "main": "spoof.js",
@@ -10,8 +10,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bindings": "^1.5.0",
     "noisejs": "^2.1.0",
     "p5": "^0.10.2",
-    "simplex-noise": "^2.4.0"
+    "simplex-noise": "^2.4.0",
+    "typescript": "^3.8.0-dev.20200104"
+  },
+  "devDependencies": {
+    "@types/puppeteer": "^2.0.0",
+    "nodeplotlib": "^0.6.5",
+    "parcel-bundler": "^1.12.4",
+    "puppeteer": "^2.0.0"
   }
 }
