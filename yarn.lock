@@ -1024,6 +1024,11 @@ bcrypt-pbkdf@^1.0.0:
   dependencies:
     tweetnacl "^0.14.3"
 
+bezier-js@^2.5.1:
+  version "2.5.1"
+  resolved "https://registry.yarnpkg.com/bezier-js/-/bezier-js-2.5.1.tgz#c27addc905a9f84a09cc02a4329be8769cd638a7"
+  integrity sha512-a+U+hOQWIx1aM37TZLGbAH1Hw0YdsuBTWYNlFudz/V/CvOM56gl5RyPoH0pUwuIqg1LAhDtoA3uRVYl0ZJpi5w==
+
 binary-extensions@^1.0.0:
   version "1.13.1"
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-1.13.1.tgz#598afe54755b2868a5330d2aff9d4ebb53209b65"
