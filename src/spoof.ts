@@ -95,7 +95,7 @@ const overshootThreshold = 500;
 const shouldOvershoot = (a: Vector, b: Vector) =>
   magnitude(direction(a, b)) > overshootThreshold;
 
-const createPointer = (page: Page, start: Vector = origin) => {
+const createCursor = (page: Page, start: Vector = origin) => {
   const overshootRadius = 120;
   // this is kind of arbitrary, not a big fan
   let previous: Vector | undefined = start;
@@ -149,7 +149,7 @@ async () => {
   console.log("waiting for login");
   await page.waitForSelector(loginButton);
   await page.waitFor(500);
-  const pointer = createPointer(page, { x: 0, y: 700 });
+  const pointer = createCursor(page, { x: 0, y: 700 });
   console.log("found button");
   await pointer.move(loginButton);
   await pointer.click();
