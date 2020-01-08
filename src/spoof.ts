@@ -94,7 +94,7 @@ const overshootThreshold = 500;
 const shouldOvershoot = (a: Vector, b: Vector) =>
   magnitude(direction(a, b)) > overshootThreshold;
 
-const createCursor = (page: Page, start: Vector = origin) => {
+export const createCursor = (page: Page, start: Vector = origin) => {
   const overshootRadius = 120;
   // this is kind of arbitrary, not a big fan
   let previous: Vector = start;
