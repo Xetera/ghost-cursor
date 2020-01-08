@@ -7,6 +7,16 @@ like the definitely-not-robot you are.
 
 > Oh yeah? Could a robot do _**this?**_
 
+## Installation
+
+```sh
+yarn add ghost-cursor
+```
+or with npm
+```sh
+npm install ghost-cursor
+```
+
 ## Usage
 Generating movement data between 2 coordinates.
 
@@ -52,8 +62,8 @@ const run = async (url) => {
 * `cursor.move()` will automatically overshoot or slightly miss and re-adjust for elements that are too far away
 from the cursor's starting point.
 * When moving over objects, a random coordinate that's within the element will be selected instead of
-hovering over the exact middle of the element.
-* The speed of the mouse will take the distance and the element you're clicking on.
+hovering over the exact center of the element.
+* The speed of the mouse will take the distance and the size of the element you're clicking on into account.
 
 <br>
 
