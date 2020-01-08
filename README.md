@@ -53,8 +53,10 @@ const run = async (url) => {
   const cursor = createCursor(page)
   await page.goto(url)
   await page.waitForSelector(selector)
-  await cursor.move(selector)
-  await cursor.click()
+  await cursor.click(selector)
+  // shorthand for
+  // await cursor.move(selector)
+  // await cursor.click()
 }
 ```
 
