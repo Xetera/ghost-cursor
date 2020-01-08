@@ -1,5 +1,4 @@
-import puppeteer, { ElementHandle, Page } from "puppeteer";
-import installMouseHelper from "./mouse-helper";
+import type { Page } from "puppeteer";
 import {
   Vector,
   bezierCurve,
@@ -98,12 +97,22 @@ const shouldOvershoot = (a: Vector, b: Vector) =>
 const createCursor = (page: Page, start: Vector = origin) => {
   const overshootRadius = 120;
   // this is kind of arbitrary, not a big fan
-  let previous: Vector | undefined = start;
+  let previous: Vector = start;
   return {
     click: () => page.mouse.down().then(() => page.mouse.up()),
     move: async (selector: string) => {
       const elem = await page.$(selector);
+      if (!elem) {
+        throw new Error(
+          `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`
+        );
+      }
       const box = await elem.boundingBox();
+      if (!box) {
+        throw new Error(
+          "Could not find dimensions of the element you're clicking on, this might be a bug?"
+        );
+      }
       const { height, width } = box;
       const destination = getRandomBoxPoint(box);
       const dimensions = { height, width };
@@ -128,47 +137,47 @@ const createCursor = (page: Page, start: Vector = origin) => {
   };
 };
 
-async () => {
-  console.log("Launching browser.");
-  const options = {
-    height: 600,
-    width: 1200
-  };
-  const browser = await puppeteer.launch({
-    headless: false,
-    args: ["--start-maximized"]
-  });
+// (async () => {
+//   console.log("Launching browser.");
+//   const options = {
+//     height: 600,
+//     width: 1200
+//   };
+//   const browser = await puppeteer.launch({
+//     headless: false,
+//     args: ["--start-maximized"]
+//   });
 
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1920, height: 1080 });
-  await installMouseHelper(page);
-  const url = "https://nike.com";
-  const loginButton = "#AccountNavigationContainer";
-  await page.goto(url);
-  // await page.evaluate(mountForm, accCreateForm);
-  console.log("waiting for login");
-  await page.waitForSelector(loginButton);
-  await page.waitFor(500);
-  const pointer = createCursor(page, { x: 0, y: 700 });
-  console.log("found button");
-  await pointer.move(loginButton);
-  await pointer.click();
-  await page.waitForSelector(".loginJoinLink a");
-  await page.waitFor(500);
-  await pointer.move(".loginJoinLink a");
-  await pointer.click();
-  for (const step of steps) {
-    await pointer.move(step.selector);
-    await pointer.click();
-    if (step.value) {
-      page.evaluate(
-        // @ts-ignore
-        step => (document.querySelector(step.selector).value = step.value),
-        step
-      );
-    }
-  }
-}; //();
+//   const page = await browser.newPage();
+//   await page.setViewport({ width: 1920, height: 1080 });
+//   await installMouseHelper(page);
+//   const url = "https://nike.com";
+//   const loginButton = "#AccountNavigationContainer";
+//   await page.goto(url);
+//   // await page.evaluate(mountForm, accCreateForm);
+//   console.log("waiting for login");
+//   await page.waitForSelector(loginButton);
+//   await page.waitFor(500);
+//   const pointer = createCursor(page, { x: 0, y: 700 });
+//   console.log("found button");
+//   await pointer.move(loginButton);
+//   await pointer.click();
+//   await page.waitForSelector(".loginJoinLink a");
+//   await page.waitFor(500);
+//   await pointer.move(".loginJoinLink a");
+//   await pointer.click();
+//   for (const step of steps) {
+//     await pointer.move(step.selector);
+//     await pointer.click();
+//     if (step.value) {
+//       page.evaluate(
+//         // @ts-ignore
+//         step => (document.querySelector(step.selector).value = step.value),
+//         step
+//       );
+//     }
+//   }
+// })();
 
 // const height = 850;
 // const width = 1500;

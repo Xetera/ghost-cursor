@@ -1,26 +1,29 @@
 {
   "name": "ghost-cursor",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/spoof.js",
+  "version": "1.0.1",
+  "description": "Move your mouse like a human in puppeteer or generate realistic movements on any 2D plane",
+  "main": "lib/spoof.js",
   "scripts": {
+    "prepare": "yarn build",
+    "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "bezier-curve",
+    "mouse-movement",
+    "botting"
+  ],
+  "author": "Xetera",
   "license": "ISC",
+  "files": [
+    "lib/**/*"
+  ],
   "dependencies": {
-    "bezier-js": "^2.5.1",
-    "bindings": "^1.5.0",
-    "noisejs": "^2.1.0",
-    "p5": "^0.10.2",
-    "simplex-noise": "^2.4.0",
-    "typescript": "^3.8.0-dev.20200104"
+    "bezier-js": "^2.5.1"
   },
   "devDependencies": {
     "@types/puppeteer": "^2.0.0",
-    "nodeplotlib": "^0.6.5",
-    "parcel-bundler": "^1.12.4",
-    "puppeteer": "^2.0.0"
+    "puppeteer": "^2.0.0",
+    "typescript": "^3.8.0-dev.20200104"
   }
 }
