@@ -3,6 +3,7 @@
   "version": "1.0.2",
   "description": "Move your mouse like a human in puppeteer or generate realistic movements on any 2D plane",
   "main": "lib/spoof.js",
+  "types": "lib/spoof.d.ts",
   "scripts": {
     "prepare": "yarn build",
     "build": "tsc",
