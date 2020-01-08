@@ -5,3 +5,4 @@ node_modules
 mouse-helper.ts
 dist
 lib/mouse-helper.js
+test.ts
