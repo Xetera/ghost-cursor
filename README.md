@@ -2,7 +2,7 @@
 
 <img src="https://media2.giphy.com/media/26ufp2LYURTvL5PRS/giphy.gif" width="100" align="right">
 
-Generate realistic, human-like mouse movement data between coordinates or nagivate between elements with puppeteer
+Generate realistic, human-like mouse movement data between coordinates or navigate between elements with puppeteer
 like the definitely-not-robot you are.
 
 > Oh yeah? Could a robot do _**this?**_
