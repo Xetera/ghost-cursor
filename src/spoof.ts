@@ -115,6 +115,16 @@ export const createCursor = (page: Page, start: Vector = origin) => {
         await tracePath(correction);
       }
       previous = destination;
+    },
+    async moveTo(destination: {x: number, y: number}) {
+      if (!(destination && destination.x && destination.y)) {
+        throw new Error(
+          `Could not find xy`
+        );
+      }
+      
+      await tracePath(path(previous, destination));
+      previous = destination;
     }
   };
   return actions;
