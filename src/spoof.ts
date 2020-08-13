@@ -119,7 +119,7 @@ export const createCursor = (page: Page, start: Vector = origin) => {
     async moveTo(destination: {x: number, y: number}) {
       if (!(destination && destination.x && destination.y)) {
         throw new Error(
-          `Could not find xy`
+          `Could not find destination point`
         );
       }
       
