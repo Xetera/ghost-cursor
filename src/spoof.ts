@@ -51,34 +51,6 @@ export function path(
   const re = curve.getLUT(steps);
   return clampPositive(re);
 }
-const steps = [
-  {
-    selector: ".emailAddress input",
-    value: "sirbezier@test.com"
-  },
-  {
-    selector: ".password input",
-    value: "1234QWEasd"
-  },
-  {
-    selector: ".firstName input",
-    value: "asd"
-  },
-  {
-    selector: ".lastName input",
-    value: "asd"
-  },
-  {
-    selector: ".dateOfBirth input",
-    value: "1989-12-03"
-  },
-  {
-    selector: ".gender ul li input"
-  },
-  {
-    selector: ".joinSubmit input"
-  }
-];
 
 const clampPositive = (vectors: Vector[]): Vector[] => {
   const clamp0 = (elem: number) => Math.max(0, elem);
