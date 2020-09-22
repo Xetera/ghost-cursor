@@ -79,11 +79,18 @@ export const createCursor = (page: Page, start: Vector = origin) => {
   const actions = {
     async click(selector?: string) {
       if (selector) {
+        await page.waitForSelector(selector, {
+					timeout: 2000,
+				});
         await actions.move(selector);
       }
       return page.mouse.down().then(() => page.mouse.up());
     },
     async move(selector: string) {
+      await page.waitForSelector(selector, {
+				timeout: 2000,
+			});
+      
       const elem = await page.$(selector);
       if (!elem) {
         throw new Error(
