@@ -20,11 +20,11 @@
     "lib/**/*"
   ],
   "dependencies": {
-    "bezier-js": "^2.5.1"
+    "bezier-js": "^2.6.1"
   },
   "devDependencies": {
-    "@types/puppeteer": "^2.0.0",
-    "puppeteer": "^2.0.0",
-    "typescript": "^3.8.0-dev.20200104"
+    "@types/puppeteer": "^3.0.4",
+    "puppeteer": "^5.4.1",
+    "typescript": "^4.0.5"
   }
 }
