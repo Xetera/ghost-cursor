@@ -1,12 +1,5 @@
-import { Page } from "puppeteer";
-import {
-  Vector,
-  bezierCurve,
-  overshoot,
-  origin,
-  direction,
-  magnitude
-} from "./math";
+import { Page } from 'puppeteer';
+import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math';
 
 /**
  * Calculate the amount of time needed to move from (x1, y1) to (x2, y2)
@@ -29,18 +22,14 @@ export interface Box {
 
 const getRandomBoxPoint = ({ x, y, width, height }: Box): Vector => ({
   x: x + Math.random() * width,
-  y: y + Math.random() * height
+  y: y + Math.random() * height,
 });
 
-const isBox = (a: any): a is Box => "width" in a;
+const isBox = (a: any): a is Box => 'width' in a;
 
 export function path(point: Vector, target: Vector, spreadOverride?: number);
 export function path(point: Vector, target: Box, spreadOverride?: number);
-export function path(
-  start: Vector,
-  end: Box | Vector,
-  spreadOverride?: number
-): Vector[] {
+export function path(start: Vector, end: Box | Vector, spreadOverride?: number): Vector[] {
   const defaultWidth = 100;
   const minSteps = 25;
   const width = isBox(end) ? end.width : defaultWidth;
@@ -57,14 +46,13 @@ const clampPositive = (vectors: Vector[]): Vector[] => {
   return vectors.map(vector => {
     return {
       x: clamp0(vector.x),
-      y: clamp0(vector.y)
+      y: clamp0(vector.y),
     };
   });
 };
 
 const overshootThreshold = 500;
-const shouldOvershoot = (a: Vector, b: Vector) =>
-  magnitude(direction(a, b)) > overshootThreshold;
+const shouldOvershoot = (a: Vector, b: Vector) => magnitude(direction(a, b)) > overshootThreshold;
 
 export const createCursor = (page: Page, start: Vector = origin) => {
   // this is kind of arbitrary, not a big fan but it seems to work
@@ -87,45 +75,42 @@ export const createCursor = (page: Page, start: Vector = origin) => {
       const elem = await page.$(selector);
       if (!elem) {
         throw new Error(
-          `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`
+          `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`,
         );
+      }
+      // Make sure the object is in view
+      let objectId;
+      if ((objectId = (elem as any)._remoteObject.objectId)) {
+        await (page as any)._client.send('DOM.scrollIntoViewIfNeeded', {
+          objectId,
+        });
       }
       const box = await elem.boundingBox();
       if (!box) {
-        throw new Error(
-          "Could not find the dimensions of the element you're clicking on, this might be a bug?"
-        );
+        throw new Error("Could not find the dimensions of the element you're clicking on, this might be a bug?");
       }
       const { height, width } = box;
       const destination = getRandomBoxPoint(box);
       const dimensions = { height, width };
       const overshooting = shouldOvershoot(previous, destination);
-      const to = overshooting
-        ? overshoot(destination, overshootRadius)
-        : destination;
+      const to = overshooting ? overshoot(destination, overshootRadius) : destination;
       await tracePath(path(previous, to));
 
       if (overshooting) {
-        const correction = path(
-          to,
-          { ...dimensions, ...destination },
-          overshootSpread
-        );
+        const correction = path(to, { ...dimensions, ...destination }, overshootSpread);
 
         await tracePath(correction);
       }
       previous = destination;
     },
-    async moveTo(destination: {x: number, y: number}) {
+    async moveTo(destination: { x: number; y: number }) {
       if (!(destination && destination.x && destination.y)) {
-        throw new Error(
-          `Could not find destination point`
-        );
+        throw new Error(`Could not find destination point`);
       }
-      
+
       await tracePath(path(previous, destination));
       previous = destination;
-    }
+    },
   };
   return actions;
 };
