@@ -1,4 +1,4 @@
-import { Page } from "puppeteer";
+import { ElementHandle, Page } from "puppeteer";
 import {
   Vector,
   bezierCurve,
@@ -77,14 +77,14 @@ export const createCursor = (page: Page, start: Vector = origin) => {
     }
   };
   const actions = {
-    async click(selector?: string) {
+    async click(selector?: ElementHandle) {
       if (selector) {
         await actions.move(selector);
       }
       return page.mouse.down().then(() => page.mouse.up());
     },
-    async move(selector: string) {
-      const elem = await page.$(selector);
+    async move(selector: ElementHandle) {
+      const elem = selector;
       if (!elem) {
         throw new Error(
           `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`
@@ -116,13 +116,13 @@ export const createCursor = (page: Page, start: Vector = origin) => {
       }
       previous = destination;
     },
-    async moveTo(destination: {x: number, y: number}) {
+    async moveTo(destination: { x: number, y: number }) {
       if (!(destination && destination.x && destination.y)) {
         throw new Error(
           `Could not find destination point`
         );
       }
-      
+
       await tracePath(path(previous, destination));
       previous = destination;
     }
