@@ -1,7 +1,7 @@
 // @ts-nocheck
 // This injects a box into the page that moves with the mouse;
 // Useful for debugging
-async function installMouseHelper(page) {
+export const installMouseHelper = async (page) => {
   await page.evaluateOnNewDocument(() => {
     // Install mouse helper only for top-level frame.
     if (window !== window.parent) return;
@@ -84,5 +84,3 @@ async function installMouseHelper(page) {
     );
   });
 }
-
-export default installMouseHelper;
