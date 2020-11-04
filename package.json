@@ -24,7 +24,7 @@
     "bezier-js": "^2.6.1"
   },
   "devDependencies": {
-    "@types/puppeteer": "^3.0.4",
+    "@types/puppeteer": "^5.4.0",
     "@typescript-eslint/eslint-plugin": "^4.6.1",
     "@typescript-eslint/parser": "^4.6.1",
     "eslint": "7",
@@ -33,7 +33,7 @@
     "eslint-plugin-node": "11",
     "eslint-plugin-promise": "4",
     "eslint-plugin-standard": "4",
-    "puppeteer": "^5.4.1",
+    "puppeteer-core": "^5.4.1",
     "typescript": "^4.0.5"
   }
 }
