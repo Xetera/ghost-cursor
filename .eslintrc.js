@@ -5,8 +5,10 @@ module.exports = {
     '@typescript-eslint',
   ],
   extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
+    'standard-with-typescript',
   ],
-  ignorePatterns: ['lib/', '.eslintrc.js'],
+  parserOptions: {
+    project: './tsconfig.json'
+  },
+  ignorePatterns: ['lib/', '.eslintrc.js', 'src/mouse-helper.ts'],
 };
