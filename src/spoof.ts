@@ -1,6 +1,11 @@
 import { Page } from 'puppeteer'
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
 
+interface MoveOptions { readonly waitForSelector: number }
+interface ClickOptions extends MoveOptions { readonly waitForClick: number }
+
+const delay = async (ms): Promise<void> => await new Promise(resolve => setTimeout(resolve, ms))
+
 /**
  * Calculate the amount of time needed to move from (x1, y1) to (x2, y2)
  * given the width of the element being clicked on
@@ -71,14 +76,23 @@ export const createCursor = (page: Page, start: Vector = origin): unknown => {
     }
   }
   const actions = {
-    async click (selector?: string): Promise<void> {
+    async click (selector?: string, options?: ClickOptions): Promise<void> {
       if (selector !== undefined) {
-        await actions.move(selector)
+        await actions.move(selector, options)
       }
       await page.mouse.down()
+      if (options?.waitForClick !== undefined) {
+        await delay(options.waitForClick)
+      }
       await page.mouse.up()
     },
-    async move (selector: string) {
+    async move (selector: string, options?: MoveOptions) {
+      if (options?.waitForSelector !== undefined) {
+        await page.waitForSelector(selector, {
+          timeout: options.waitForSelector
+        })
+      }
+
       const elem = await page.$(selector)
       if (elem === null) {
         throw new Error(
