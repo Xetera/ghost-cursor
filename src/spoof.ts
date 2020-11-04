@@ -1,7 +1,8 @@
 import { Page } from 'puppeteer'
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
 
-interface MoveOptions { readonly waitForSelector: number }
+interface BoxOptions { readonly paddingPercentage: number }
+interface MoveOptions extends BoxOptions { readonly waitForSelector: number }
 interface ClickOptions extends MoveOptions { readonly waitForClick: number }
 
 const delay = async (ms): Promise<void> => await new Promise(resolve => setTimeout(resolve, ms))
@@ -25,10 +26,19 @@ export interface Box {
   height: number
 }
 
-const getRandomBoxPoint = ({ x, y, width, height }: Box): Vector => ({
-  x: x + Math.random() * width,
-  y: y + Math.random() * height
-})
+const getRandomBoxPoint = ({ x, y, width, height }: Box, options?: BoxOptions): Vector => {
+  let paddingWidth = 0; let paddingHeight = 0
+
+  if (options?.paddingPercentage !== undefined && options?.paddingPercentage > 0 && options?.paddingPercentage < 100) {
+    paddingWidth = width * options.paddingPercentage / 100
+    paddingHeight = height * options.paddingPercentage / 100
+  }
+
+  return {
+    x: x + (paddingWidth / 2) + Math.random() * (width - paddingWidth),
+    y: y + (paddingHeight / 2) + Math.random() * (height - paddingWidth)
+  }
+}
 
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = (page.target() as any)._targetId
@@ -110,7 +120,7 @@ export const createCursor = (page: Page, start: Vector = origin): unknown => {
         throw new Error("Could not find the dimensions of the element you're clicking on, this might be a bug?")
       }
       const { height, width } = box
-      const destination = getRandomBoxPoint(box)
+      const destination = getRandomBoxPoint(box, options)
       const dimensions = { height, width }
       const overshooting = shouldOvershoot(previous, destination)
       const to = overshooting ? overshoot(destination, overshootRadius) : destination
