@@ -7,17 +7,17 @@ export interface Vector {
 export const origin: Vector = { x: 0, y: 0 };
 
 // maybe i should've just imported a vector library lol
-export const sub = (a: Vector, b: Vector) => ({ x: a.x - b.x, y: a.y - b.y });
-export const div = (a: Vector, b: number) => ({ x: a.x / b, y: a.y / b });
-export const mult = (a: Vector, b: number) => ({ x: a.x * b, y: a.y * b });
-export const add = (a: Vector, b: Vector) => ({ x: a.x + b.x, y: a.y + b.y });
+export const sub = (a: Vector, b: Vector) : Vector => ({ x: a.x - b.x, y: a.y - b.y });
+export const div = (a: Vector, b: number) : Vector => ({ x: a.x / b, y: a.y / b });
+export const mult = (a: Vector, b: number) : Vector => ({ x: a.x * b, y: a.y * b });
+export const add = (a: Vector, b: Vector) : Vector => ({ x: a.x + b.x, y: a.y + b.y });
 
-export const direction = (a: Vector, b: Vector) => sub(b, a);
-export const perpendicular = (a: Vector) => ({ x: a.y, y: -1 * a.x });
-export const magnitude = (a: Vector) =>
+export const direction = (a: Vector, b: Vector) : Vector => sub(b, a);
+export const perpendicular = (a: Vector) : Vector => ({ x: a.y, y: -1 * a.x });
+export const magnitude = (a: Vector) : number =>
   Math.sqrt(Math.pow(a.x, 2) + Math.pow(a.y, 2));
-export const unit = (a: Vector) => div(a, magnitude(a));
-export const setMagnitude = (a: Vector, amount: number) =>
+export const unit = (a: Vector) : number => div(a, magnitude(a));
+export const setMagnitude = (a: Vector, amount: number) : number =>
   mult(unit(a), amount);
 
 export const randomNumberRange = (min: number, max: number): number =>

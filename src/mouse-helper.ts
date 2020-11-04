@@ -1,7 +1,6 @@
-// @ts-nocheck
 // This injects a box into the page that moves with the mouse;
 // Useful for debugging
-async function installMouseHelper(page) {
+async function installMouseHelper(page : Page) : void {
   await page.evaluateOnNewDocument(() => {
     // Install mouse helper only for top-level frame.
     if (window !== window.parent) return;
@@ -76,7 +75,6 @@ async function installMouseHelper(page) {
         );
         function updateButtons(buttons) {
           for (let i = 0; i < 5; i++)
-            // @ts-ignore
             box.classList.toggle("button-" + i, buttons & (1 << i));
         }
       },

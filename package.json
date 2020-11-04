@@ -24,6 +24,10 @@
   },
   "devDependencies": {
     "@types/puppeteer": "^3.0.4",
+    "@typescript-eslint/eslint-plugin": "^4.6.1",
+    "@typescript-eslint/parser": "^4.6.1",
+    "eslint": "^7.12.1",
+    "eslint-config-standard-with-typescript": "^19.0.1",
     "puppeteer": "^5.4.1",
     "typescript": "^4.0.5"
   }

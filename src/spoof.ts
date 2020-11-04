@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Page } from 'puppeteer';
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math';
 
@@ -24,6 +25,15 @@ const getRandomBoxPoint = ({ x, y, width, height }: Box): Vector => ({
   x: x + Math.random() * width,
   y: y + Math.random() * height,
 });
+
+export const getRandomPagePoint = (page: Page) : Vector => {
+  if (!page.viewport()) {
+    console.log('no viewport');
+    return origin;
+  }
+  console.log(page.viewport());
+  return getRandomBoxPoint({ x: origin.x, y: origin.y, width: page.viewport().width, height: page.viewport().height });
+};
 
 const isBox = (a: any): a is Box => 'width' in a;
 
@@ -54,7 +64,7 @@ const clampPositive = (vectors: Vector[]): Vector[] => {
 const overshootThreshold = 500;
 const shouldOvershoot = (a: Vector, b: Vector) => magnitude(direction(a, b)) > overshootThreshold;
 
-export const createCursor = (page: Page, start: Vector = origin) => {
+export const createCursor = (page: Page, start: Vector = origin) : unknown => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const overshootSpread = 10;
   const overshootRadius = 120;
