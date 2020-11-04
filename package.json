@@ -5,7 +5,7 @@
   "main": "lib/spoof.js",
   "types": "lib/spoof.d.ts",
   "scripts": {
-    "prepare": "yarn build",
+    "prepare": "yarn lint && yarn build",
     "build": "tsc",
     "lint": "yarn eslint --fix .",
     "test": "exit 0"
