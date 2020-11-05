@@ -1,8 +1,8 @@
-import { Page } from 'puppeteer';
+import { Page } from 'puppeteer'
 // @ts-nocheck
 // This injects a box into the page that moves with the mouse;
 // Useful for debugging
-async function installMouseHelper(page: Page) {
+async function installMouseHelper(page: Page): Promise<void> {
   await page.evaluateOnNewDocument(() => {
     // Install mouse helper only for top-level frame.
     if (window !== window.parent) return;
@@ -86,4 +86,4 @@ async function installMouseHelper(page: Page) {
   });
 }
 
-export default installMouseHelper;
+export default installMouseHelper
