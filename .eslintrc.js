@@ -10,5 +10,5 @@ module.exports = {
   parserOptions: {
     project: './tsconfig.json'
   },
-  ignorePatterns: ['lib/', '.eslintrc.js', 'src/mouse-helper.ts'],
+  ignorePatterns: ['lib/', '.eslintrc.js'],
 };
