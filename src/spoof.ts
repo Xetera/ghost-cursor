@@ -78,7 +78,7 @@ const shouldOvershoot = (a: Vector, b: Vector): boolean => magnitude(direction(a
 export const createCursor = (page: Page, start: Vector = origin): unknown => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const overshootSpread = 10
-  const overshootRadius = 120
+  const overshootRadius = 50
   let previous: Vector = start
   const tracePath = async (vectors: Iterable<Vector>): Promise<void> => {
     for (const { x, y } of vectors) {
