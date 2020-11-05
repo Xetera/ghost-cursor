@@ -1,4 +1,4 @@
-import { Page } from 'puppeteer'
+import { ElementHandle, Page } from 'puppeteer'
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
 export * as installMouseHelper from './mouse-helper'
 
@@ -76,6 +76,8 @@ const clampPositive = (vectors: Vector[]): Vector[] => {
 const overshootThreshold = 500
 const shouldOvershoot = (a: Vector, b: Vector): boolean => magnitude(direction(a, b)) > overshootThreshold
 
+const isElementHandle = (a: any): a is ElementHandle => true
+
 export const createCursor = (page: Page, start: Vector = origin): unknown => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const overshootSpread = 10
@@ -87,7 +89,7 @@ export const createCursor = (page: Page, start: Vector = origin): unknown => {
     }
   }
   const actions = {
-    async click (selector?: string, options?: ClickOptions): Promise<void> {
+    async click (selector?: string | ElementHandle, options?: ClickOptions): Promise<void> {
       if (selector !== undefined) {
         await actions.move(selector, options)
       }
@@ -97,22 +99,37 @@ export const createCursor = (page: Page, start: Vector = origin): unknown => {
       }
       await page.mouse.up()
     },
-    async move (selector: string, options?: MoveOptions) {
-      if (options?.waitForSelector !== undefined) {
-        await page.waitForSelector(selector, {
-          timeout: options.waitForSelector
-        })
-      }
-
-      const elem = await page.$(selector)
-      if (elem === null) {
-        throw new Error(
-          `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`
-        )
+    async move (selector: string | ElementHandle, options?: MoveOptions) {
+      let elem
+      if (!isElementHandle(selector)) {
+        if (selector.includes('//')) {
+          if (options?.waitForSelector !== undefined) {
+            await page.waitForXPath(selector, {
+              timeout: options.waitForSelector
+            })
+          }
+          elem = await page.$x(selector)
+        } else {
+          if (options?.waitForSelector !== undefined) {
+            await page.waitForSelector(selector, {
+              timeout: options.waitForSelector
+            })
+          }
+          elem = await page.$(selector)
+        }
+        if (elem === null) {
+          throw new Error(
+            `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`
+          )
+        }
+      } else {
+        elem = selector
       }
       // Make sure the object is in view
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       if ((elem as any)._remoteObject.objectId !== null) {
         await (page as any)._client.send('DOM.scrollIntoViewIfNeeded', {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
           objectId: (elem as any)._remoteObject.objectId
         })
       }
