@@ -37,7 +37,7 @@ const getRandomBoxPoint = ({ x, y, width, height }: Box, options?: BoxOptions): 
 
   return {
     x: x + (paddingWidth / 2) + Math.random() * (width - paddingWidth),
-    y: y + (paddingHeight / 2) + Math.random() * (height - paddingWidth)
+    y: y + (paddingHeight / 2) + Math.random() * (height - paddingHeight)
   }
 }
 
