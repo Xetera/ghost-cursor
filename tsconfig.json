@@ -59,6 +59,6 @@
   ],
   "exclude": [
     "node_modules",
-    //"src/mouse-helper.ts"
+    "src/mouse-helper.ts"
   ]
 }

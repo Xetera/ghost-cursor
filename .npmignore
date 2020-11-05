@@ -2,5 +2,7 @@ index.html
 node_modules
 .vscode
 .cache
+mouse-helper.ts
 dist
+lib/mouse-helper.js
 test.ts
