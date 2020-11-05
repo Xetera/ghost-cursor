@@ -7,7 +7,6 @@ import {
   direction,
   magnitude
 } from "./math";
-export { installMouseHelper } from "./mouse-helper";
 
 /**
  * Calculate the amount of time needed to move from (x1, y1) to (x2, y2)
