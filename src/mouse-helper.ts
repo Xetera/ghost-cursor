@@ -1,15 +1,16 @@
+import { Page } from 'puppeteer'
 // @ts-nocheck
 // This injects a box into the page that moves with the mouse;
 // Useful for debugging
-async function installMouseHelper(page) {
+async function installMouseHelper (page: Page): Promise<void> {
   await page.evaluateOnNewDocument(() => {
     // Install mouse helper only for top-level frame.
-    if (window !== window.parent) return;
+    if (window !== window.parent) return
     window.addEventListener(
-      "DOMContentLoaded",
+      'DOMContentLoaded',
       () => {
-        const box = document.createElement("puppeteer-mouse-pointer");
-        const styleElement = document.createElement("style");
+        const box = document.createElement('puppeteer-mouse-pointer')
+        const styleElement = document.createElement('style')
         styleElement.innerHTML = `
         puppeteer-mouse-pointer {
           pointer-events: none;
@@ -46,43 +47,45 @@ async function installMouseHelper(page) {
           transition: none;
           border-color: rgba(0,255,0,0.9);
         }
-      `;
-        document.head.appendChild(styleElement);
-        document.body.appendChild(box);
+      `
+        document.head.appendChild(styleElement)
+        document.body.appendChild(box)
         document.addEventListener(
-          "mousemove",
+          'mousemove',
           event => {
-            box.style.left = event.pageX + "px";
-            box.style.top = event.pageY + "px";
-            updateButtons(event.buttons);
+            box.style.left = String(event.pageX) + 'px'
+            box.style.top = String(event.pageY) + 'px'
+            updateButtons(event.buttons)
           },
           true
-        );
+        )
         document.addEventListener(
-          "mousedown",
+          'mousedown',
           event => {
-            updateButtons(event.buttons);
-            box.classList.add("button-" + event.which);
+            updateButtons(event.buttons)
+            box.classList.add('button-' + String(event.which))
           },
           true
-        );
+        )
         document.addEventListener(
-          "mouseup",
+          'mouseup',
           event => {
-            updateButtons(event.buttons);
-            box.classList.remove("button-" + event.which);
+            updateButtons(event.buttons)
+            box.classList.remove('button-' + String(event.which))
           },
           true
-        );
+        )
+        /* eslint-disable */
         function updateButtons(buttons) {
-          for (let i = 0; i < 5; i++)
+          for (let i = 0; i < 5; i++) {
             // @ts-ignore
-            box.classList.toggle("button-" + i, buttons & (1 << i));
+            box.classList.toggle('button-' + String(i), buttons & (1 << i))
+          }
         }
       },
       false
-    );
-  });
+    )
+  })
 }
 
-export default installMouseHelper;
+export default installMouseHelper
