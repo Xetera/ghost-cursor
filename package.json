@@ -5,8 +5,9 @@
   "main": "lib/spoof.js",
   "types": "lib/spoof.d.ts",
   "scripts": {
-    "prepare": "yarn build",
+    "prepare": "yarn lint && yarn build",
     "build": "tsc",
+    "lint": "yarn eslint --fix .",
     "test": "exit 0"
   },
   "keywords": [
@@ -20,11 +21,29 @@
     "lib/**/*"
   ],
   "dependencies": {
-    "bezier-js": "^2.5.1"
+    "bezier-js": "^2.6.1"
   },
   "devDependencies": {
-    "@types/puppeteer": "^2.0.0",
-    "puppeteer": "^2.0.0",
-    "typescript": "^3.8.0-dev.20200104"
+    "@types/puppeteer": "^5.4.0",
+    "@typescript-eslint/eslint-plugin": "^4.6.1",
+    "@typescript-eslint/parser": "^4.6.1",
+    "eslint": "7",
+    "eslint-config-standard-with-typescript": "^19.0.1",
+    "eslint-plugin-import": "2",
+    "eslint-plugin-node": "11",
+    "eslint-plugin-promise": "4",
+    "eslint-plugin-standard": "4",
+    "husky": "^4.3.0",
+    "puppeteer-core": "^5.4.1",
+    "typescript": "^4.0.5",
+    "yarnhook": "^0.4.5"
+  },
+  "husky": {
+    "hooks": {
+      "post-checkout": "yarnhook",
+      "post-merge": "yarnhook",
+      "post-rewrite": "yarnhook",
+      "pre-commit": "yarn lint"
+    }
   }
 }
