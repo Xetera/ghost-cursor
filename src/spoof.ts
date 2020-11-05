@@ -1,5 +1,6 @@
 import { Page } from 'puppeteer'
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
+export * as installMouseHelper from './mouse-helper'
 
 interface BoxOptions { readonly paddingPercentage: number }
 interface MoveOptions extends BoxOptions { readonly waitForSelector: number }
