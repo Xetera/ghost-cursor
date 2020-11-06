@@ -76,8 +76,6 @@ const clampPositive = (vectors: Vector[]): Vector[] => {
 const overshootThreshold = 500
 const shouldOvershoot = (a: Vector, b: Vector): boolean => magnitude(direction(a, b)) > overshootThreshold
 
-const isElementHandle = (a: any): a is ElementHandle => true
-
 export const createCursor = (page: Page, start: Vector = origin): unknown => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const overshootSpread = 10
@@ -101,7 +99,7 @@ export const createCursor = (page: Page, start: Vector = origin): unknown => {
     },
     async move (selector: string | ElementHandle, options?: MoveOptions) {
       let elem
-      if (!isElementHandle(selector)) {
+      if (typeof selector === 'string') {
         if (selector.includes('//')) {
           if (options?.waitForSelector !== undefined) {
             await page.waitForXPath(selector, {
@@ -125,9 +123,10 @@ export const createCursor = (page: Page, start: Vector = origin): unknown => {
       } else {
         elem = selector
       }
+
       // Make sure the object is in view
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-      if ((elem as any)._remoteObject.objectId !== null) {
+      if ((elem as any)._remoteObject !== undefined && (elem as any)._remoteObject.objectId !== undefined) {
         await (page as any)._client.send('DOM.scrollIntoViewIfNeeded', {
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
           objectId: (elem as any)._remoteObject.objectId
