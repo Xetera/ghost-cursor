@@ -83,7 +83,11 @@ export const createCursor = (page: Page, start: Vector = origin): unknown => {
   let previous: Vector = start
   const tracePath = async (vectors: Iterable<Vector>): Promise<void> => {
     for (const { x, y } of vectors) {
-      await page.mouse.move(x, y)
+      try {
+        await page.mouse.move(x, y)
+      } catch (error) {
+        console.log('Warning: could not move mouse, error message:', error)
+      }
     }
   }
   const actions = {
@@ -91,11 +95,15 @@ export const createCursor = (page: Page, start: Vector = origin): unknown => {
       if (selector !== undefined) {
         await actions.move(selector, options)
       }
-      await page.mouse.down()
-      if (options?.waitForClick !== undefined) {
-        await delay(options.waitForClick)
+      try {
+        await page.mouse.down()
+        if (options?.waitForClick !== undefined) {
+          await delay(options.waitForClick)
+        }
+        await page.mouse.up()
+      } catch (error) {
+        console.log('Warning: could not click mouse, error message:', error)
       }
-      await page.mouse.up()
     },
     async move (selector: string | ElementHandle, options?: MoveOptions) {
       let elem
