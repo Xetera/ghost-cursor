@@ -1,12 +1,14 @@
 import { ElementHandle, Page } from 'puppeteer'
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
+import { EventEmitter } from 'events'
 export { default as installMouseHelper } from './mouse-helper'
 
 interface BoxOptions { readonly paddingPercentage: number }
 interface MoveOptions extends BoxOptions { readonly waitForSelector: number }
 interface ClickOptions extends MoveOptions { readonly waitForClick: number }
 
-const delay = async (ms): Promise<void> => await new Promise(resolve => setTimeout(resolve, ms))
+// Helper function to wait a specified number of milliseconds
+const delay = async (ms: number): Promise<void> => await new Promise(resolve => setTimeout(resolve, ms))
 
 /**
  * Calculate the amount of time needed to move from (x1, y1) to (x2, y2)
@@ -27,6 +29,7 @@ export interface Box {
   height: number
 }
 
+// Get a random point on a box
 const getRandomBoxPoint = ({ x, y, width, height }: Box, options?: BoxOptions): Vector => {
   let paddingWidth = 0; let paddingHeight = 0
 
@@ -41,6 +44,7 @@ const getRandomBoxPoint = ({ x, y, width, height }: Box, options?: BoxOptions): 
   }
 }
 
+// Get a random point on a browser window
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = (page.target() as any)._targetId
   const window = await (page as any)._client.send('Browser.getWindowForTarget', { targetId })
@@ -76,25 +80,69 @@ const clampPositive = (vectors: Vector[]): Vector[] => {
 const overshootThreshold = 500
 const shouldOvershoot = (a: Vector, b: Vector): boolean => magnitude(direction(a, b)) > overshootThreshold
 
-export const createCursor = (page: Page, start: Vector = origin): unknown => {
+export const createCursor = (page: Page, start: Vector = origin, performRandomMoves: boolean = false): unknown => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const overshootSpread = 10
   const overshootRadius = 120
   let previous: Vector = start
+
+  // Create EventEmitter for locking/unlocking mouse movements
+  const bus: EventEmitter = new EventEmitter()
+
+  // Initial state: mouse is not moving, not clicking
+  let moving: boolean = false; let clicking: boolean = false
+
+  // Helper function to acquire a lock
+  const lock = async (): Promise<void> => {
+    if (moving) {
+      await new Promise(resolve => bus.once('unlocked', resolve))
+    }
+
+    moving = true
+  }
+
+  // Helper function to release a lock
+  const unlock = (): void => {
+    moving = false
+
+    bus.emit('unlocked')
+  }
+
+  // Move the mouse over a number of vectors
   const tracePath = async (vectors: Iterable<Vector>): Promise<void> => {
     for (const { x, y } of vectors) {
       try {
         await page.mouse.move(x, y)
       } catch (error) {
+        // Exit function if the browser is no longer connected
+        if (!page.browser().isConnected()) return
+
         console.log('Warning: could not move mouse, error message:', error)
       }
     }
   }
+
+  // Start random mouse movements. Function recursively calls itself
+  const randomMove = async (): Promise<void> => {
+    try {
+      const rand = await getRandomPagePoint(page)
+      await actions.moveTo(rand)
+      await delay(Math.random() * 1000) // wait max 1 second
+      randomMove().then(_ => { }, _ => { }) // fire and forget, recursive function
+    } catch (_) {
+      console.log('Warning: stopping random mouse movements')
+    }
+  }
+
   const actions = {
     async click (selector?: string | ElementHandle, options?: ClickOptions): Promise<void> {
+      await lock()
+      clicking = true
+
       if (selector !== undefined) {
         await actions.move(selector, options)
       }
+
       try {
         await page.mouse.down()
         if (options?.waitForClick !== undefined) {
@@ -104,8 +152,14 @@ export const createCursor = (page: Page, start: Vector = origin): unknown => {
       } catch (error) {
         console.log('Warning: could not click mouse, error message:', error)
       }
+
+      clicking = false
+      delay(Math.random() * 2000).then(unlock, _ => { }) // fire and forget: free lock after max 2 secs
     },
     async move (selector: string | ElementHandle, options?: MoveOptions) {
+      // Acquire lock only if not acquired yet in the click function
+      if (!clicking) await lock()
+
       let elem
       if (typeof selector === 'string') {
         if (selector.includes('//')) {
@@ -157,11 +211,20 @@ export const createCursor = (page: Page, start: Vector = origin): unknown => {
         await tracePath(correction)
       }
       previous = destination
+
+      // Release lock only if not being released later in the click function
+      if (!clicking) unlock()
     },
     async moveTo (destination: Vector) {
+      await lock()
       await tracePath(path(previous, destination))
       previous = destination
+      unlock()
     }
   }
+
+  // Start random mouse movements. Do not await the promise but return immediately
+  if (performRandomMoves) randomMove().then(_ => { }, _ => { })
+
   return actions
 }
