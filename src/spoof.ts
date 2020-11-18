@@ -51,6 +51,31 @@ export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   return getRandomBoxPoint({ x: origin.x, y: origin.y, width: window.bounds.width, height: window.bounds.height })
 }
 
+// Using this method to get correct position of Inline elements (elements like <a>)
+const getElementBox = async (element: ElementHandle, relativeToMainFrame: boolean = true): Promise<Box|null> => {
+  const elementBox = await element.evaluate(element => {
+    return (function (element) {
+      const box = element.getClientRects()
+      if (box.length <= 0) return null
+      return {
+        x: box[0].x,
+        y: box[0].y,
+        width: box[0].width,
+        height: box[0].height
+      }
+    })(element)
+  })
+  if (elementBox === null) {
+    return null
+  }
+  if (relativeToMainFrame) {
+    const boundingBox = await element.boundingBox()
+    elementBox.x = boundingBox !== null ? boundingBox.x : 0
+    elementBox.y = boundingBox !== null ? boundingBox.y : 0
+  }
+  return elementBox
+}
+
 const isBox = (a: any): a is Box => 'width' in a
 
 export function path (point: Vector, target: Vector, spreadOverride?: number)
@@ -194,7 +219,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
           objectId: (elem as any)._remoteObject.objectId
         })
       }
-      const box = await elem.boundingBox()
+      const box = await getElementBox(elem)
       if (box === null) {
         throw new Error("Could not find the dimensions of the element you're clicking on, this might be a bug?")
       }
