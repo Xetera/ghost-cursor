@@ -4,15 +4,13 @@ import { Page } from 'puppeteer'
 // Useful for debugging
 async function installMouseHelper (page: Page): Promise<void> {
   await page.evaluateOnNewDocument(() => {
-    // Install mouse helper only for top-level frame.
-    if (window !== window.parent) return
     window.addEventListener(
       'DOMContentLoaded',
       () => {
-        const box = document.createElement('puppeteer-mouse-pointer')
+        const box = document.createElement('p-mouse-pointer')
         const styleElement = document.createElement('style')
         styleElement.innerHTML = `
-        puppeteer-mouse-pointer {
+        p-mouse-pointer {
           pointer-events: none;
           position: absolute;
           top: 0;
@@ -27,25 +25,28 @@ async function installMouseHelper (page: Page): Promise<void> {
           padding: 0;
           transition: background .2s, border-radius .2s, border-color .2s;
         }
-        puppeteer-mouse-pointer.button-1 {
+        p-mouse-pointer.button-1 {
           transition: none;
           background: rgba(0,0,0,0.9);
         }
-        puppeteer-mouse-pointer.button-2 {
+        p-mouse-pointer.button-2 {
           transition: none;
           border-color: rgba(0,0,255,0.9);
         }
-        puppeteer-mouse-pointer.button-3 {
+        p-mouse-pointer.button-3 {
           transition: none;
           border-radius: 4px;
         }
-        puppeteer-mouse-pointer.button-4 {
+        p-mouse-pointer.button-4 {
           transition: none;
           border-color: rgba(255,0,0,0.9);
         }
-        puppeteer-mouse-pointer.button-5 {
+        p-mouse-pointer.button-5 {
           transition: none;
           border-color: rgba(0,255,0,0.9);
+        }
+        p-mouse-pointer-hide {
+          display: none
         }
       `
         document.head.appendChild(styleElement)
@@ -55,6 +56,7 @@ async function installMouseHelper (page: Page): Promise<void> {
           event => {
             box.style.left = String(event.pageX) + 'px'
             box.style.top = String(event.pageY) + 'px'
+            box.classList.remove('p-mouse-pointer-hide')
             updateButtons(event.buttons)
           },
           true
@@ -64,6 +66,7 @@ async function installMouseHelper (page: Page): Promise<void> {
           event => {
             updateButtons(event.buttons)
             box.classList.add('button-' + String(event.which))
+            box.classList.remove('p-mouse-pointer-hide')
           },
           true
         )
@@ -72,6 +75,23 @@ async function installMouseHelper (page: Page): Promise<void> {
           event => {
             updateButtons(event.buttons)
             box.classList.remove('button-' + String(event.which))
+            box.classList.remove('p-mouse-pointer-hide')
+          },
+          true
+        )
+        document.addEventListener(
+          'mouseleave',
+          event => {
+            updateButtons(event.buttons)
+            box.classList.add('p-mouse-pointer-hide')
+          },
+          true
+        )
+        document.addEventListener(
+          'mouseenter',
+          event => {
+            updateButtons(event.buttons)
+            box.classList.remove('p-mouse-pointer-hide')
           },
           true
         )
