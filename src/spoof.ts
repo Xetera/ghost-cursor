@@ -52,26 +52,36 @@ export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
 }
 
 // Using this method to get correct position of Inline elements (elements like <a>)
-const getElementBox = async (element: ElementHandle, relativeToMainFrame: boolean = true): Promise<Box|null> => {
-  const elementBox = await element.evaluate(element => {
-    return (function (element) {
-      const box = element.getClientRects()
-      if (box.length <= 0) return null
-      return {
-        x: box[0].x,
-        y: box[0].y,
-        width: box[0].width,
-        height: box[0].height
-      }
-    })(element)
+const getElementBox = async (page: Page, element: ElementHandle, relativeToMainFrame: boolean = true): Promise<Box | null> => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  if ((element as any)._remoteObject === undefined || (element as any)._remoteObject.objectId === undefined) {
+    return null
+  }
+  const quads = await (page as any)._client.send('DOM.getContentQuads', {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    objectId: (element as any)._remoteObject.objectId
   })
+  const elementBox = {
+    x: quads.quads[0][0],
+    y: quads.quads[0][1],
+    width: quads.quads[0][4] - quads.quads[0][0],
+    height: quads.quads[0][5] - quads.quads[0][1]
+  }
   if (elementBox === null) {
     return null
   }
-  if (relativeToMainFrame) {
-    const boundingBox = await element.boundingBox()
-    elementBox.x = boundingBox !== null ? boundingBox.x : 0
-    elementBox.y = boundingBox !== null ? boundingBox.y : 0
+  if (!relativeToMainFrame) {
+    const elementFrame = (element.executionContext() as any).frame()
+    const iframes = await elementFrame.parentFrame().$x('//iframe')
+    let frame = null
+    for (const iframe of iframes) {
+      if ((await iframe.contentFrame()) === elementFrame) frame = iframe
+    }
+    if (frame !== null) {
+      const boundingBox = await (frame as ElementHandle).boundingBox()
+      elementBox.x = boundingBox !== null ? elementBox.x - boundingBox.x : elementBox.x
+      elementBox.y = boundingBox !== null ? elementBox.y - boundingBox.y : elementBox.y
+    }
   }
   return elementBox
 }
@@ -219,7 +229,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
           objectId: (elem as any)._remoteObject.objectId
         })
       }
-      const box = await getElementBox(elem)
+      const box = await getElementBox(page, elem)
       if (box === null) {
         throw new Error("Could not find the dimensions of the element you're clicking on, this might be a bug?")
       }
