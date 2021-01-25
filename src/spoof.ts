@@ -1,6 +1,5 @@
 import { ElementHandle, Page } from 'puppeteer'
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
-import { EventEmitter } from 'events'
 export { default as installMouseHelper } from './mouse-helper'
 
 interface BoxOptions { readonly paddingPercentage: number }
@@ -121,33 +120,19 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
   const overshootRadius = 120
   let previous: Vector = start
 
-  // Create EventEmitter for locking/unlocking mouse movements
-  const bus: EventEmitter = new EventEmitter()
-
-  // Initial state: mouse is not moving, not clicking
-  let moving: boolean = false; let clicking: boolean = false
-
-  // Helper function to acquire a lock
-  const lock = async (): Promise<void> => {
-    if (moving) {
-      await new Promise(resolve => bus.once('unlocked', resolve))
-    }
-
-    moving = true
-  }
-
-  // Helper function to release a lock
-  const unlock = (): void => {
-    moving = false
-
-    bus.emit('unlocked')
-  }
+  // Initial state: mouse is not moving
+  let moving: boolean = false
 
   // Move the mouse over a number of vectors
-  const tracePath = async (vectors: Iterable<Vector>): Promise<void> => {
-    for (const { x, y } of vectors) {
+  const tracePath = async (vectors: Iterable<Vector>, abortOnMove: boolean = false): Promise<void> => {
+    for (const v of vectors) {
       try {
-        await page.mouse.move(x, y)
+        // In case this is called from random mouse movements and the users wants to move the mouse, abort
+        if (abortOnMove && moving) {
+          return
+        }
+        await page.mouse.move(v.x, v.y)
+        previous = v
       } catch (error) {
         // Exit function if the browser is no longer connected
         if (!page.browser().isConnected()) return
@@ -160,9 +145,12 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
   // Start random mouse movements. Function recursively calls itself
   const randomMove = async (): Promise<void> => {
     try {
-      const rand = await getRandomPagePoint(page)
-      await actions.moveTo(rand)
-      await delay(Math.random() * 1000) // wait max 1 second
+      if (!moving) {
+        const rand = await getRandomPagePoint(page)
+        await tracePath(path(previous, rand), true)
+        previous = rand
+      }
+      await delay(Math.random() * 2000) // wait max 2 seconds
       randomMove().then(_ => { }, _ => { }) // fire and forget, recursive function
     } catch (_) {
       console.log('Warning: stopping random mouse movements')
@@ -170,12 +158,16 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
   }
 
   const actions = {
+    toggleRandomMove (random: boolean): void {
+      moving = !random
+    },
+
     async click (selector?: string | ElementHandle, options?: ClickOptions): Promise<void> {
-      await lock()
-      clicking = true
+      actions.toggleRandomMove(false)
 
       if (selector !== undefined) {
         await actions.move(selector, options)
+        actions.toggleRandomMove(false)
       }
 
       try {
@@ -188,13 +180,11 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
         console.log('Warning: could not click mouse, error message:', error)
       }
 
-      clicking = false
-      delay(Math.random() * 2000).then(unlock, _ => { }) // fire and forget: free lock after max 2 secs
+      await delay(Math.random() * 2000)
+      actions.toggleRandomMove(true)
     },
     async move (selector: string | ElementHandle, options?: MoveOptions) {
-      // Acquire lock only if not acquired yet in the click function
-      if (!clicking) await lock()
-
+      actions.toggleRandomMove(false)
       let elem
       if (typeof selector === 'string') {
         if (selector.includes('//')) {
@@ -247,14 +237,12 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       }
       previous = destination
 
-      // Release lock only if not being released later in the click function
-      if (!clicking) unlock()
+      actions.toggleRandomMove(true)
     },
     async moveTo (destination: Vector) {
-      await lock()
+      actions.toggleRandomMove(false)
       await tracePath(path(previous, destination))
-      previous = destination
-      unlock()
+      actions.toggleRandomMove(true)
     }
   }
 
