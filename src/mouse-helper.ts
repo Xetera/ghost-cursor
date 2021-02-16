@@ -1,4 +1,4 @@
-import { Page } from 'puppeteer'
+import { Page } from 'puppeteer-core'
 // @ts-nocheck
 // This injects a box into the page that moves with the mouse;
 // Useful for debugging

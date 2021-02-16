@@ -1,10 +1,16 @@
-import { ElementHandle, Page } from 'puppeteer'
+import { ElementHandle, Page } from 'puppeteer-core'
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
 export { default as installMouseHelper } from './mouse-helper'
 
 interface BoxOptions { readonly paddingPercentage: number }
 interface MoveOptions extends BoxOptions { readonly waitForSelector: number }
 interface ClickOptions extends MoveOptions { readonly waitForClick: number }
+interface GhostCursor {
+  toggleRandomMove: (random: boolean) => void
+  click: (selector?: string | ElementHandle, options?: ClickOptions) => Promise<void>
+  move: (selector: string | ElementHandle, options?: MoveOptions) => Promise<void>
+  moveTo: (destination: Vector) => Promise<void>
+}
 
 // Helper function to wait a specified number of milliseconds
 const delay = async (ms: number): Promise<void> => await new Promise(resolve => setTimeout(resolve, ms))
@@ -114,7 +120,7 @@ const clampPositive = (vectors: Vector[]): Vector[] => {
 const overshootThreshold = 500
 const shouldOvershoot = (a: Vector, b: Vector): boolean => magnitude(direction(a, b)) > overshootThreshold
 
-export const createCursor = (page: Page, start: Vector = origin, performRandomMoves: boolean = false): unknown => {
+export const createCursor = (page: Page, start: Vector = origin, performRandomMoves: boolean = false): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const overshootSpread = 10
   const overshootRadius = 120
@@ -157,7 +163,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
     }
   }
 
-  const actions = {
+  const actions: GhostCursor = {
     toggleRandomMove (random: boolean): void {
       moving = !random
     },
@@ -183,7 +189,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       await delay(Math.random() * 2000)
       actions.toggleRandomMove(true)
     },
-    async move (selector: string | ElementHandle, options?: MoveOptions) {
+    async move (selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
       actions.toggleRandomMove(false)
       let elem
       if (typeof selector === 'string') {
@@ -239,7 +245,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
 
       actions.toggleRandomMove(true)
     },
-    async moveTo (destination: Vector) {
+    async moveTo (destination: Vector): Promise<void> {
       actions.toggleRandomMove(false)
       await tracePath(path(previous, destination))
       actions.toggleRandomMove(true)
