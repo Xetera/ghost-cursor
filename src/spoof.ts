@@ -1,4 +1,4 @@
-import { ElementHandle, Page } from 'puppeteer-core'
+import { ElementHandle, Page } from 'puppeteer'
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
 export { default as installMouseHelper } from './mouse-helper'
 
