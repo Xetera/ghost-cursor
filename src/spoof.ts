@@ -5,7 +5,7 @@ export { default as installMouseHelper } from './mouse-helper'
 interface BoxOptions { readonly paddingPercentage: number }
 interface MoveOptions extends BoxOptions { readonly waitForSelector: number }
 interface ClickOptions extends MoveOptions { readonly waitForClick: number }
-interface GhostCursor {
+export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
   click: (selector?: string | ElementHandle, options?: ClickOptions) => Promise<void>
   move: (selector: string | ElementHandle, options?: MoveOptions) => Promise<void>
