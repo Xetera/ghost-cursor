@@ -191,7 +191,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
     },
     async move (selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
       actions.toggleRandomMove(false)
-      let elem
+      let elem: ElementHandle | null = null
       if (typeof selector === 'string') {
         if (selector.includes('//')) {
           if (options?.waitForSelector !== undefined) {
@@ -199,7 +199,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
               timeout: options.waitForSelector
             })
           }
-          elem = await page.$x(selector)
+          elem = await page.$x(selector)[0]
         } else {
           if (options?.waitForSelector !== undefined) {
             await page.waitForSelector(selector, {
@@ -213,17 +213,21 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
             `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`
           )
         }
-      } else {
+      } else { // ElementHandle
         elem = selector
       }
 
       // Make sure the object is in view
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       if ((elem as any)._remoteObject !== undefined && (elem as any)._remoteObject.objectId !== undefined) {
-        await (page as any)._client.send('DOM.scrollIntoViewIfNeeded', {
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-          objectId: (elem as any)._remoteObject.objectId
-        })
+        try {
+          await (page as any)._client.send('DOM.scrollIntoViewIfNeeded', {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+            objectId: (elem as any)._remoteObject.objectId
+          })
+        } catch (_) { // use regular JS scroll method as a fallback
+          await elem.evaluate(e => e.scrollIntoView())
+        }
       }
       const box = await getElementBox(page, elem)
       if (box === null) {
