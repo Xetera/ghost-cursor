@@ -12,6 +12,29 @@ export interface GhostCursor {
   moveTo: (destination: Vector) => Promise<void>
 }
 
+// Define some missing (hidden) types in Puppeteer
+declare module 'puppeteer' {
+  interface Page {
+    _client: {
+      send: (name: string, params: {}) => Promise<any>
+    }
+  }
+
+  interface Target {
+    _targetId: string
+  }
+
+  interface ElementHandle {
+    _remoteObject: {
+      objectId: string
+    }
+  }
+
+  interface ExecutionContext {
+    frame: () => Frame
+  }
+}
+
 // Helper function to wait a specified number of milliseconds
 const delay = async (ms: number): Promise<void> => await new Promise(resolve => setTimeout(resolve, ms))
 
@@ -51,20 +74,18 @@ const getRandomBoxPoint = ({ x, y, width, height }: Box, options?: BoxOptions): 
 
 // Get a random point on a browser window
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
-  const targetId: string = (page.target() as any)._targetId
-  const window = await (page as any)._client.send('Browser.getWindowForTarget', { targetId })
+  const targetId: string = page.target()._targetId
+  const window = await page._client.send('Browser.getWindowForTarget', { targetId })
   return getRandomBoxPoint({ x: origin.x, y: origin.y, width: window.bounds.width, height: window.bounds.height })
 }
 
 // Using this method to get correct position of Inline elements (elements like <a>)
 const getElementBox = async (page: Page, element: ElementHandle, relativeToMainFrame: boolean = true): Promise<Box | null> => {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-  if ((element as any)._remoteObject === undefined || (element as any)._remoteObject.objectId === undefined) {
+  if (element._remoteObject.objectId === undefined) {
     return null
   }
-  const quads = await (page as any)._client.send('DOM.getContentQuads', {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    objectId: (element as any)._remoteObject.objectId
+  const quads = await page._client.send('DOM.getContentQuads', {
+    objectId: element._remoteObject.objectId
   })
   const elementBox = {
     x: quads.quads[0][0],
@@ -76,14 +97,16 @@ const getElementBox = async (page: Page, element: ElementHandle, relativeToMainF
     return null
   }
   if (!relativeToMainFrame) {
-    const elementFrame = (element.executionContext() as any).frame()
-    const iframes = await elementFrame.parentFrame().$x('//iframe')
-    let frame = null
-    for (const iframe of iframes) {
-      if ((await iframe.contentFrame()) === elementFrame) frame = iframe
+    const elementFrame = element.executionContext().frame()
+    const iframes = await elementFrame.parentFrame()?.$x('//iframe')
+    let frame: ElementHandle | undefined
+    if (iframes != null) {
+      for (const iframe of iframes) {
+        if ((await iframe.contentFrame()) === elementFrame) frame = iframe
+      }
     }
-    if (frame !== null) {
-      const boundingBox = await (frame as ElementHandle).boundingBox()
+    if (frame !== undefined) {
+      const boundingBox = await frame.boundingBox()
       elementBox.x = boundingBox !== null ? elementBox.x - boundingBox.x : elementBox.x
       elementBox.y = boundingBox !== null ? elementBox.y - boundingBox.y : elementBox.y
     }
@@ -218,12 +241,10 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       }
 
       // Make sure the object is in view
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-      if ((elem as any)._remoteObject !== undefined && (elem as any)._remoteObject.objectId !== undefined) {
+      if (elem._remoteObject?.objectId !== undefined) {
         try {
-          await (page as any)._client.send('DOM.scrollIntoViewIfNeeded', {
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-            objectId: (elem as any)._remoteObject.objectId
+          await page._client.send('DOM.scrollIntoViewIfNeeded', {
+            objectId: elem._remoteObject.objectId
           })
         } catch (_) { // use regular JS scroll method as a fallback
           await elem.evaluate(e => e.scrollIntoView())
