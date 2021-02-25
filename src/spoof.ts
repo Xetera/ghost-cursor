@@ -1,4 +1,4 @@
-import { ElementHandle, Page } from 'puppeteer'
+import { ElementHandle, Page, BoundingBox } from 'puppeteer'
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
 export { default as installMouseHelper } from './mouse-helper'
 
@@ -50,15 +50,8 @@ const fitts = (distance: number, width: number): number => {
   return a + b * id
 }
 
-export interface Box {
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
 // Get a random point on a box
-const getRandomBoxPoint = ({ x, y, width, height }: Box, options?: BoxOptions): Vector => {
+const getRandomBoxPoint = ({ x, y, width, height }: BoundingBox, options?: BoxOptions): Vector => {
   let paddingWidth = 0; let paddingHeight = 0
 
   if (options?.paddingPercentage !== undefined && options?.paddingPercentage > 0 && options?.paddingPercentage < 100) {
@@ -80,13 +73,19 @@ export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
 }
 
 // Using this method to get correct position of Inline elements (elements like <a>)
-const getElementBox = async (page: Page, element: ElementHandle, relativeToMainFrame: boolean = true): Promise<Box | null> => {
+const getElementBox = async (page: Page, element: ElementHandle, relativeToMainFrame: boolean = true): Promise<BoundingBox | null> => {
   if (element._remoteObject.objectId === undefined) {
     return null
   }
-  const quads = await page._client.send('DOM.getContentQuads', {
-    objectId: element._remoteObject.objectId
-  })
+  let quads
+  try {
+    quads = await page._client.send('DOM.getContentQuads', {
+      objectId: element._remoteObject.objectId
+    })
+  } catch (_) {
+    console.debug('Quads not found, trying regular boundingBox')
+    return await element.boundingBox()
+  }
   const elementBox = {
     x: quads.quads[0][0],
     y: quads.quads[0][1],
@@ -114,14 +113,12 @@ const getElementBox = async (page: Page, element: ElementHandle, relativeToMainF
   return elementBox
 }
 
-const isBox = (a: any): a is Box => 'width' in a
-
 export function path (point: Vector, target: Vector, spreadOverride?: number)
-export function path (point: Vector, target: Box, spreadOverride?: number)
-export function path (start: Vector, end: Box | Vector, spreadOverride?: number): Vector[] {
+export function path (point: Vector, target: BoundingBox, spreadOverride?: number)
+export function path (start: Vector, end: BoundingBox | Vector, spreadOverride?: number): Vector[] {
   const defaultWidth = 100
   const minSteps = 25
-  const width = isBox(end) ? end.width : defaultWidth
+  const width = 'width' in end ? end.width : defaultWidth
   const curve = bezierCurve(start, end, spreadOverride)
   const length = curve.length() * 0.8
   const baseTime = Math.random() * minSteps
@@ -166,7 +163,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
         // Exit function if the browser is no longer connected
         if (!page.browser().isConnected()) return
 
-        console.log('Warning: could not move mouse, error message:', error)
+        console.debug('Warning: could not move mouse, error message:', error)
       }
     }
   }
@@ -182,7 +179,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       await delay(Math.random() * 2000) // wait max 2 seconds
       randomMove().then(_ => { }, _ => { }) // fire and forget, recursive function
     } catch (_) {
-      console.log('Warning: stopping random mouse movements')
+      console.debug('Warning: stopping random mouse movements')
     }
   }
 
@@ -206,7 +203,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
         }
         await page.mouse.up()
       } catch (error) {
-        console.log('Warning: could not click mouse, error message:', error)
+        console.debug('Warning: could not click mouse, error message:', error)
       }
 
       await delay(Math.random() * 2000)
