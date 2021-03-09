@@ -3,8 +3,8 @@ import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './
 export { default as installMouseHelper } from './mouse-helper'
 
 interface BoxOptions { readonly paddingPercentage: number }
-interface MoveOptions extends BoxOptions { readonly waitForSelector: number }
-interface ClickOptions extends MoveOptions { readonly waitForClick: number, readonly delayOptions: number }
+interface MoveOptions extends BoxOptions { readonly waitForSelector: number, readonly moveDelay?: number }
+interface ClickOptions extends MoveOptions { readonly waitForClick: number, readonly moveDelay?: number }
 export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
   click: (selector?: string | ElementHandle, options?: ClickOptions) => Promise<void>
@@ -113,9 +113,9 @@ const getElementBox = async (page: Page, element: ElementHandle, relativeToMainF
   return elementBox
 }
 
-export function path (point: Vector, target: Vector, spreadOverride?: number)
-export function path (point: Vector, target: BoundingBox, spreadOverride?: number)
-export function path (start: Vector, end: BoundingBox | Vector, spreadOverride?: number): Vector[] {
+export function path(point: Vector, target: Vector, spreadOverride?: number)
+export function path(point: Vector, target: BoundingBox, spreadOverride?: number)
+export function path(start: Vector, end: BoundingBox | Vector, spreadOverride?: number): Vector[] {
   const defaultWidth = 100
   const minSteps = 25
   const width = 'width' in end ? end.width : defaultWidth
@@ -167,16 +167,20 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       }
     }
   }
-
+  // options?: ClickOptions
   // Start random mouse movements. Function recursively calls itself
-  const randomMove = async (): Promise<void> => {
+  const randomMove = async (options?: MoveOptions): Promise<void> => {
     try {
       if (!moving) {
         const rand = await getRandomPagePoint(page)
         await tracePath(path(previous, rand), true)
         previous = rand
       }
-      await delay(Math.random() * 2000) // wait max 2 seconds
+      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
+        await delay(Math.random() * options.moveDelay)
+      } else {
+        await delay(Math.random() * 2000) // 2s by default
+      }
       randomMove().then(_ => { }, _ => { }) // fire and forget, recursive function
     } catch (_) {
       console.debug('Warning: stopping random mouse movements')
@@ -184,11 +188,11 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
   }
 
   const actions: GhostCursor = {
-    toggleRandomMove (random: boolean): void {
+    toggleRandomMove(random: boolean): void {
       moving = !random
     },
 
-    async click (selector?: string | ElementHandle, options?: ClickOptions): Promise<void> {
+    async click(selector?: string | ElementHandle, options?: ClickOptions): Promise<void> {
       actions.toggleRandomMove(false)
 
       if (selector !== undefined) {
@@ -206,15 +210,15 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
         console.debug('Warning: could not click mouse, error message:', error)
       }
 
-      if (options?.delayOptions !== undefined && options.delayOptions >= 0) {
-        await delay(Math.random() * options.delayOptions)
+      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
+        await delay(Math.random() * options.moveDelay)
       } else {
         await delay(Math.random() * 2000) // 2s by default
       }
 
       actions.toggleRandomMove(true)
     },
-    async move (selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
+    async move(selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
       actions.toggleRandomMove(false)
       let elem: ElementHandle | null = null
       if (typeof selector === 'string') {
@@ -272,7 +276,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
 
       actions.toggleRandomMove(true)
     },
-    async moveTo (destination: Vector): Promise<void> {
+    async moveTo(destination: Vector): Promise<void> {
       actions.toggleRandomMove(false)
       await tracePath(path(previous, destination))
       actions.toggleRandomMove(true)
