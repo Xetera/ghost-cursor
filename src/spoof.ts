@@ -167,7 +167,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       }
     }
   }
-  // options?: ClickOptions
+  
   // Start random mouse movements. Function recursively calls itself
   const randomMove = async (options?: MoveOptions): Promise<void> => {
     try {
