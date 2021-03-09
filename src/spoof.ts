@@ -4,7 +4,7 @@ export { default as installMouseHelper } from './mouse-helper'
 
 interface BoxOptions { readonly paddingPercentage: number }
 interface MoveOptions extends BoxOptions { readonly waitForSelector: number }
-interface ClickOptions extends MoveOptions { readonly waitForClick: number }
+interface ClickOptions extends MoveOptions { readonly waitForClick: number, readonly delayOptions: number }
 export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
   click: (selector?: string | ElementHandle, options?: ClickOptions) => Promise<void>
@@ -206,7 +206,12 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
         console.debug('Warning: could not click mouse, error message:', error)
       }
 
-      await delay(Math.random() * 2000)
+      if (options?.delayOptions !== undefined && options.delayOptions >= 0) {
+        await delay(Math.random() * options.delayOptions)
+      } else {
+        await delay(Math.random() * 2000) // 2s by default
+      }
+
       actions.toggleRandomMove(true)
     },
     async move (selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
