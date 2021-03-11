@@ -257,7 +257,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       }
       var box = await getElementBox(page, elem)
       if (box === null) {
-          box = await elem.getBoundingClientRect();
+          box = await elem.evaluate((e: Element) => e.getBoundingClientRect());
           if (!box) throw new Error("Could not find the dimensions of the element you're clicking on, this might be a bug?");
       }
       const { height, width } = box
