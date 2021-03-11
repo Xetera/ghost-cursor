@@ -221,13 +221,13 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       actions.toggleRandomMove(false)
       let elem: ElementHandle | null = null
       if (typeof selector === 'string') {
-        if (selector.includes('//')) {
+        if (selector.startsWith('//') || selector.startsWith('(//')) {
           if (options?.waitForSelector !== undefined) {
             await page.waitForXPath(selector, {
               timeout: options.waitForSelector
             })
           }
-          elem = await page.$x(selector)[0]
+          [elem] = await page.$x(selector)
         } else {
           if (options?.waitForSelector !== undefined) {
             await page.waitForSelector(selector, {
