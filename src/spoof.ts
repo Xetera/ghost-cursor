@@ -3,7 +3,7 @@ import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './
 export { default as installMouseHelper } from './mouse-helper'
 
 interface BoxOptions { readonly paddingPercentage: number }
-interface MoveOptions extends BoxOptions { readonly waitForSelector: number }
+interface MoveOptions extends BoxOptions { readonly waitForSelector: number, readonly moveDelay?: number }
 interface ClickOptions extends MoveOptions { readonly waitForClick: number }
 export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
@@ -167,16 +167,19 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       }
     }
   }
-
   // Start random mouse movements. Function recursively calls itself
-  const randomMove = async (): Promise<void> => {
+  const randomMove = async (options?: MoveOptions): Promise<void> => {
     try {
       if (!moving) {
         const rand = await getRandomPagePoint(page)
         await tracePath(path(previous, rand), true)
         previous = rand
       }
-      await delay(Math.random() * 2000) // wait max 2 seconds
+      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
+        await delay(Math.random() * options.moveDelay)
+      } else {
+        await delay(Math.random() * 2000) // 2s by default
+      }
       randomMove().then(_ => { }, _ => { }) // fire and forget, recursive function
     } catch (_) {
       console.debug('Warning: stopping random mouse movements')
@@ -206,7 +209,12 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
         console.debug('Warning: could not click mouse, error message:', error)
       }
 
-      await delay(Math.random() * 2000)
+      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
+        await delay(Math.random() * options.moveDelay)
+      } else {
+        await delay(Math.random() * 2000) // 2s by default
+      }
+
       actions.toggleRandomMove(true)
     },
     async move (selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
