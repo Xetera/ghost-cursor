@@ -252,12 +252,13 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
             objectId: elem._remoteObject.objectId
           })
         } catch (_) { // use regular JS scroll method as a fallback
-          await elem.evaluate(e => e.scrollIntoView())
+          await elem.evaluate(e => e.scrollIntoView({ behavior: 'smooth' }))
         }
       }
-      const box = await getElementBox(page, elem)
+      var box = await getElementBox(page, elem)
       if (box === null) {
-        throw new Error("Could not find the dimensions of the element you're clicking on, this might be a bug?")
+          box = await elem.getBoundingClientRect();
+          if (!box) throw new Error("Could not find the dimensions of the element you're clicking on, this might be a bug?");
       }
       const { height, width } = box
       const destination = getRandomBoxPoint(box, options)
