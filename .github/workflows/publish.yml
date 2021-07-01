@@ -1,5 +1,6 @@
 name: Publish to NPM
 on:
+  workflow_dispatch:
   create:
     tags:
       - v* # only run if new tag is created
@@ -8,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install Node v14
-        uses: actions/setup-node@v1
+      - name: Install Node v16
+        uses: actions/setup-node@v2
         with:
-          node-version: 14
+          node-version: '16'
       - name: Install dependencies and build
         run: yarn
       - uses: JS-DevTools/npm-publish@v1
