@@ -12,29 +12,6 @@ export interface GhostCursor {
   moveTo: (destination: Vector) => Promise<void>
 }
 
-// Define some missing (hidden) types in Puppeteer
-declare module 'puppeteer' {
-  interface Page {
-    _client: {
-      send: (name: string, params: {}) => Promise<any>
-    }
-  }
-
-  interface Target {
-    _targetId: string
-  }
-
-  interface ElementHandle {
-    _remoteObject: {
-      objectId: string
-    }
-  }
-
-  interface ExecutionContext {
-    frame: () => Frame
-  }
-}
-
 // Helper function to wait a specified number of milliseconds
 const delay = async (ms: number): Promise<void> => await new Promise(resolve => setTimeout(resolve, ms))
 
@@ -68,8 +45,8 @@ const getRandomBoxPoint = ({ x, y, width, height }: BoundingBox, options?: BoxOp
 // Get a random point on a browser window
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = page.target()._targetId
-  const window = await page._client.send('Browser.getWindowForTarget', { targetId })
-  return getRandomBoxPoint({ x: origin.x, y: origin.y, width: window.bounds.width, height: window.bounds.height })
+  const window = await (page as any)._client.send('Browser.getWindowForTarget', { targetId })
+  return getRandomBoxPoint({ x: origin.x, y: origin.y, width: window.bounds.width ?? 0, height: window.bounds.height ?? 0 })
 }
 
 // Using this method to get correct position of Inline elements (elements like <a>)
@@ -77,40 +54,37 @@ const getElementBox = async (page: Page, element: ElementHandle, relativeToMainF
   if (element._remoteObject.objectId === undefined) {
     return null
   }
-  let quads
+
   try {
-    quads = await page._client.send('DOM.getContentQuads', {
+    const quads = await (page as any)._client.send('DOM.getContentQuads', {
       objectId: element._remoteObject.objectId
     })
+    const elementBox = {
+      x: quads.quads[0][0],
+      y: quads.quads[0][1],
+      width: quads.quads[0][4] - quads.quads[0][0],
+      height: quads.quads[0][5] - quads.quads[0][1]
+    }
+    if (!relativeToMainFrame) {
+      const elementFrame = element.executionContext().frame()
+      const iframes = (elementFrame != null) ? await elementFrame.parentFrame()?.$x('//iframe') : null
+      let frame: ElementHandle<Element> | undefined
+      if (iframes != null) {
+        for (const iframe of iframes) {
+          if ((await iframe.contentFrame()) === elementFrame) frame = iframe
+        }
+      }
+      if (frame != null) {
+        const boundingBox = await frame.boundingBox()
+        elementBox.x = boundingBox !== null ? elementBox.x - boundingBox.x : elementBox.x
+        elementBox.y = boundingBox !== null ? elementBox.y - boundingBox.y : elementBox.y
+      }
+    }
+    return elementBox
   } catch (_) {
     console.debug('Quads not found, trying regular boundingBox')
     return await element.boundingBox()
   }
-  const elementBox = {
-    x: quads.quads[0][0],
-    y: quads.quads[0][1],
-    width: quads.quads[0][4] - quads.quads[0][0],
-    height: quads.quads[0][5] - quads.quads[0][1]
-  }
-  if (elementBox === null) {
-    return null
-  }
-  if (!relativeToMainFrame) {
-    const elementFrame = element.executionContext().frame()
-    const iframes = await elementFrame.parentFrame()?.$x('//iframe')
-    let frame: ElementHandle | undefined
-    if (iframes != null) {
-      for (const iframe of iframes) {
-        if ((await iframe.contentFrame()) === elementFrame) frame = iframe
-      }
-    }
-    if (frame !== undefined) {
-      const boundingBox = await frame.boundingBox()
-      elementBox.x = boundingBox !== null ? elementBox.x - boundingBox.x : elementBox.x
-      elementBox.y = boundingBox !== null ? elementBox.y - boundingBox.y : elementBox.y
-    }
-  }
-  return elementBox
 }
 
 export function path (point: Vector, target: Vector, spreadOverride?: number)
@@ -248,16 +222,17 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       // Make sure the object is in view
       if (elem._remoteObject?.objectId !== undefined) {
         try {
-          await page._client.send('DOM.scrollIntoViewIfNeeded', {
+          await (page as any)._client.send('DOM.scrollIntoViewIfNeeded', {
             objectId: elem._remoteObject.objectId
           })
-        } catch (_) { // use regular JS scroll method as a fallback
+        } catch (e) { // use regular JS scroll method as a fallback
+          console.debug('Falling back to JS scroll method', e)
           await elem.evaluate(e => e.scrollIntoView({ behavior: 'smooth' }))
         }
       }
-      var box = await getElementBox(page, elem)
+      let box: BoundingBox | null = await getElementBox(page, elem)
       if (box === null) {
-          box = await elem.evaluate((e: Element) => e.getBoundingClientRect());
+        box = await elem.evaluate((el: Element) => el.getBoundingClientRect()) as BoundingBox
       }
       const { height, width } = box
       const destination = getRandomBoxPoint(box, options)
