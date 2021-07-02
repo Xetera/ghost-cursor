@@ -2,6 +2,7 @@
   "name": "ghost-cursor",
   "version": "1.1.6",
   "description": "Move your mouse like a human in puppeteer or generate realistic movements on any 2D plane",
+  "repository": "https://github.com/Xetera/ghost-cursor",
   "main": "lib/spoof.js",
   "types": "lib/spoof.d.ts",
   "scripts": {
