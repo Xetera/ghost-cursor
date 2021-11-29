@@ -21,6 +21,7 @@ async function installMouseHelper (page: Page): Promise<void> {
           background: rgba(0,0,0,.4);
           border: 1px solid white;
           border-radius: 10px;
+          box-sizing: border-box;
           margin: -10px 0 0 -10px;
           padding: 0;
           transition: background .2s, border-radius .2s, border-color .2s;
