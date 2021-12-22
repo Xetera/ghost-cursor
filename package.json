@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "husky": "7",
-    "puppeteer": "12",
+    "puppeteer": "13",
     "ts-standard": "11",
     "typescript": "4"
   }
