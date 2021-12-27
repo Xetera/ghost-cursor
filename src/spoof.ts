@@ -16,6 +16,11 @@ interface ClickOptions extends MoveOptions {
   readonly waitForClick: number
 }
 
+interface PathOptions {
+  readonly spreadOverride?: number
+  readonly moveSpeed?: number
+}
+
 export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
   click: (selector?: string | ElementHandle, options?: ClickOptions) => Promise<void>
@@ -98,15 +103,19 @@ const getElementBox = async (page: Page, element: ElementHandle, relativeToMainF
   }
 }
 
-export function path (point: Vector, target: Vector, spreadOverride?: number, moveSpeed?: number | null)
-export function path (point: Vector, target: BoundingBox, spreadOverride?: number, moveSpeed?: number | null)
-export function path (start: Vector, end: BoundingBox | Vector, spreadOverride?: number, moveSpeed?: number | null): Vector[] {
+export function path (point: Vector, target: Vector, options?: number | PathOptions)
+export function path (point: Vector, target: BoundingBox, options?: number | PathOptions)
+export function path (start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] {
+  const spreadOverride = typeof options === 'number' ? options : options?.spreadOverride;
+  const moveSpeed = typeof options === 'object' && options.moveSpeed;
+
   const defaultWidth = 100
   const minSteps = 25
   const width = 'width' in end ? end.width : defaultWidth
   const curve = bezierCurve(start, end, spreadOverride)
   const length = curve.length() * 0.8
-  const speed = moveSpeed == null ? Math.random() : (25 / moveSpeed)
+
+  const speed = typeof moveSpeed == 'number' ? (25 / moveSpeed) : Math.random();
   const baseTime = speed * minSteps
   const steps = Math.ceil((Math.log2(fitts(length, width) + 1) + baseTime) * 3)
   const re = curve.getLUT(steps)
@@ -158,7 +167,9 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
     try {
       if (!moving) {
         const rand = await getRandomPagePoint(page)
-        await tracePath(path(previous, rand, undefined, options?.moveSpeed), true)
+        await tracePath(path(previous, rand, {
+          moveSpeed: options?.moveSpeed,
+        }), true)
         previous = rand
       }
       if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
@@ -251,10 +262,15 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       const dimensions = { height, width }
       const overshooting = shouldOvershoot(previous, destination)
       const to = overshooting ? overshoot(destination, overshootRadius) : destination
-      await tracePath(path(previous, to, undefined, options?.moveSpeed))
+      await tracePath(path(previous, to, {
+        moveSpeed: options?.moveSpeed,
+      }))
 
       if (overshooting) {
-        const correction = path(to, { ...dimensions, ...destination }, overshootSpread, options?.moveSpeed)
+        const correction = path(to, { ...dimensions, ...destination }, {
+          spreadOverride: overshootSpread,
+          moveSpeed: options?.moveSpeed,
+        })
 
         await tracePath(correction)
       }
