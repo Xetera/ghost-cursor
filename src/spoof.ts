@@ -2,9 +2,20 @@ import { ElementHandle, Page, BoundingBox } from 'puppeteer'
 import { Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
 export { default as installMouseHelper } from './mouse-helper'
 
-interface BoxOptions { readonly paddingPercentage: number }
-interface MoveOptions extends BoxOptions { readonly waitForSelector: number, readonly moveDelay?: number }
-interface ClickOptions extends MoveOptions { readonly waitForClick: number }
+interface BoxOptions {
+  readonly paddingPercentage: number
+}
+
+interface MoveOptions extends BoxOptions {
+  readonly waitForSelector: number
+  readonly moveDelay?: number
+  readonly moveSpeed?: number
+}
+
+interface ClickOptions extends MoveOptions {
+  readonly waitForClick: number
+}
+
 export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
   click: (selector?: string | ElementHandle, options?: ClickOptions) => Promise<void>
@@ -87,15 +98,16 @@ const getElementBox = async (page: Page, element: ElementHandle, relativeToMainF
   }
 }
 
-export function path (point: Vector, target: Vector, spreadOverride?: number)
-export function path (point: Vector, target: BoundingBox, spreadOverride?: number)
-export function path (start: Vector, end: BoundingBox | Vector, spreadOverride?: number): Vector[] {
+export function path (point: Vector, target: Vector, spreadOverride?: number, moveSpeed?: number | null)
+export function path (point: Vector, target: BoundingBox, spreadOverride?: number, moveSpeed?: number | null)
+export function path (start: Vector, end: BoundingBox | Vector, spreadOverride?: number, moveSpeed?: number | null): Vector[] {
   const defaultWidth = 100
   const minSteps = 25
   const width = 'width' in end ? end.width : defaultWidth
   const curve = bezierCurve(start, end, spreadOverride)
   const length = curve.length() * 0.8
-  const baseTime = Math.random() * minSteps
+  const speed = moveSpeed == null ? Math.random() : (25 / moveSpeed)
+  const baseTime = speed * minSteps
   const steps = Math.ceil((Math.log2(fitts(length, width) + 1) + baseTime) * 3)
   const re = curve.getLUT(steps)
   return clampPositive(re)
@@ -146,7 +158,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
     try {
       if (!moving) {
         const rand = await getRandomPagePoint(page)
-        await tracePath(path(previous, rand), true)
+        await tracePath(path(previous, rand, undefined, options?.moveSpeed), true)
         previous = rand
       }
       if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
@@ -239,10 +251,10 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
       const dimensions = { height, width }
       const overshooting = shouldOvershoot(previous, destination)
       const to = overshooting ? overshoot(destination, overshootRadius) : destination
-      await tracePath(path(previous, to))
+      await tracePath(path(previous, to, undefined, options?.moveSpeed))
 
       if (overshooting) {
-        const correction = path(to, { ...dimensions, ...destination }, overshootSpread)
+        const correction = path(to, { ...dimensions, ...destination }, overshootSpread, options?.moveSpeed)
 
         await tracePath(correction)
       }
