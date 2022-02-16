@@ -1,5 +1,5 @@
 {
-  "name": "ghost-cursor",
+  "name": "@aw1875/ghost-cursor",
   "version": "1.1.8",
   "description": "Move your mouse like a human in puppeteer or generate realistic movements on any 2D plane",
   "repository": "https://github.com/Xetera/ghost-cursor",
