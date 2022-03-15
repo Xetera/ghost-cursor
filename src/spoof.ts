@@ -228,6 +228,7 @@ export const createCursor = (page: Page, start: Vector = origin, performRandomMo
         } catch (e) { // use regular JS scroll method as a fallback
           console.debug('Falling back to JS scroll method', e)
           await elem.evaluate(e => e.scrollIntoView({ behavior: 'smooth' }))
+          await new Promise(resolve => setTimeout(resolve, 2000)) // Wait a bit until the scroll has finished
         }
       }
       let box: BoundingBox | null = await getElementBox(page, elem)
