@@ -22,10 +22,10 @@
     "lib/**/*"
   ],
   "dependencies": {
+    "@types/bezier-js": "4",
     "bezier-js": "^6"
   },
   "devDependencies": {
-    "@types/bezier-js": "4",
     "husky": "7",
     "puppeteer": "13",
     "ts-standard": "11",
