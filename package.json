@@ -26,8 +26,8 @@
     "bezier-js": "^6"
   },
   "devDependencies": {
-    "husky": "7",
-    "puppeteer": "13",
+    "husky": "8",
+    "puppeteer": "14",
     "ts-standard": "11",
     "typescript": "4"
   }
