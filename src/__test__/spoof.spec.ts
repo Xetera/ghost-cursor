@@ -1,6 +1,6 @@
 import { Page } from 'puppeteer'
 import { createCursor, GhostCursor } from '../spoof'
-import * as path from 'path'
+import { join } from 'path'
 import { promises as fs } from 'fs'
 import installMouseHelper from '../mouse-helper'
 
@@ -11,10 +11,7 @@ let cursor: GhostCursor
 describe('Mouse movements', () => {
   beforeAll(async () => {
     await installMouseHelper(page)
-    const html = await fs.readFile(
-      path.join(__dirname, 'custom-page.html'),
-      'utf8'
-    )
+    const html = await fs.readFile(join(__dirname, 'custom-page.html'), 'utf8')
     await page.goto('data:text/html,' + encodeURIComponent(html), {
       waitUntil: 'networkidle2'
     })
