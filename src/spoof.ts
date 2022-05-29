@@ -5,7 +5,7 @@ import {
   direction,
   magnitude,
   origin,
-  overshoot,
+  overshoot
 } from './math'
 export { default as installMouseHelper } from './mouse-helper'
 
@@ -68,7 +68,7 @@ const getRandomBoxPoint = (
 
   return {
     x: x + paddingWidth / 2 + Math.random() * (width - paddingWidth),
-    y: y + paddingHeight / 2 + Math.random() * (height - paddingHeight),
+    y: y + paddingHeight / 2 + Math.random() * (height - paddingHeight)
   }
 }
 
@@ -83,7 +83,7 @@ export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
     x: origin.x,
     y: origin.y,
     width: window.bounds.width ?? 0,
-    height: window.bounds.height ?? 0,
+    height: window.bounds.height ?? 0
   })
 }
 
@@ -99,13 +99,13 @@ const getElementBox = async (
 
   try {
     const quads = await (page as any)._client.send('DOM.getContentQuads', {
-      objectId: element._remoteObject.objectId,
+      objectId: element._remoteObject.objectId
     })
     const elementBox = {
       x: quads.quads[0][0],
       y: quads.quads[0][1],
       width: quads.quads[0][4] - quads.quads[0][0],
-      height: quads.quads[0][5] - quads.quads[0][1],
+      height: quads.quads[0][5] - quads.quads[0][1]
     }
     if (!relativeToMainFrame) {
       const elementFrame = element.executionContext().frame()
@@ -127,6 +127,7 @@ const getElementBox = async (
           boundingBox !== null ? elementBox.y - boundingBox.y : elementBox.y
       }
     }
+
     return elementBox
   } catch (_) {
     console.debug('Quads not found, trying regular boundingBox')
@@ -134,13 +135,13 @@ const getElementBox = async (
   }
 }
 
-export function path(point: Vector, target: Vector, spreadOverride?: number)
-export function path(
+export function path (point: Vector, target: Vector, spreadOverride?: number)
+export function path (
   point: Vector,
   target: BoundingBox,
   spreadOverride?: number
 )
-export function path(
+export function path (
   start: Vector,
   end: BoundingBox | Vector,
   spreadOverride?: number
@@ -161,7 +162,7 @@ const clampPositive = (vectors: Vector[]): Vector[] => {
   return vectors.map((vector) => {
     return {
       x: clamp0(vector.x),
-      y: clamp0(vector.y),
+      y: clamp0(vector.y)
     }
   })
 }
@@ -253,11 +254,11 @@ export const createCursor = (
   }
 
   const actions: GhostCursor = {
-    toggleRandomMove(random: boolean): void {
+    toggleRandomMove (random: boolean): void {
       moving = !random
     },
 
-    async click(
+    async click (
       selector?: string | ElementHandle,
       options?: ClickOptions
     ): Promise<void> {
@@ -286,7 +287,7 @@ export const createCursor = (
 
       actions.toggleRandomMove(true)
     },
-    async move(
+    async move (
       selector: string | ElementHandle,
       options?: MoveOptions
     ): Promise<void> {
@@ -301,14 +302,14 @@ export const createCursor = (
           if (selector.startsWith('//') || selector.startsWith('(//')) {
             if (options?.waitForSelector !== undefined) {
               await page.waitForXPath(selector, {
-                timeout: options.waitForSelector,
+                timeout: options.waitForSelector
               })
             }
             ;[elem] = await page.$x(selector)
           } else {
             if (options?.waitForSelector !== undefined) {
               await page.waitForSelector(selector, {
-                timeout: options.waitForSelector,
+                timeout: options.waitForSelector
               })
             }
             elem = await page.$(selector)
@@ -327,7 +328,7 @@ export const createCursor = (
         if (elem._remoteObject?.objectId !== undefined) {
           try {
             await (page as any)._client.send('DOM.scrollIntoViewIfNeeded', {
-              objectId: elem._remoteObject.objectId,
+              objectId: elem._remoteObject.objectId
             })
           } catch (e) {
             // use regular JS scroll method as a fallback
@@ -372,11 +373,11 @@ export const createCursor = (
       }
       return await go(0)
     },
-    async moveTo(destination: Vector): Promise<void> {
+    async moveTo (destination: Vector): Promise<void> {
       actions.toggleRandomMove(false)
       await tracePath(path(previous, destination))
       actions.toggleRandomMove(true)
-    },
+    }
   }
 
   // Start random mouse movements. Do not await the promise but return immediately

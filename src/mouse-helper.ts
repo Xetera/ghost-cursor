@@ -100,16 +100,16 @@ async function installMouseHelper (page: Page): Promise<void> {
       function updateButtons(buttons) {
         for (let i = 0; i < 5; i++) {
           // @ts-ignore
-          box.classList.toggle('button-' + String(i), buttons & (1 << i))
+          box.classList.toggle("button-" + String(i), buttons & (1 << i));
         }
       }
-    }
-    if (document.readyState !== 'loading') {
-      attachListener()
+    };
+    if (document.readyState !== "loading") {
+      attachListener();
     } else {
-      window.addEventListener('DOMContentLoaded', attachListener, false)
+      window.addEventListener("DOMContentLoaded", attachListener, false);
     }
-  })
+  });
 }
 
-export default installMouseHelper
+export default installMouseHelper;
