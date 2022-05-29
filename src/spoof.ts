@@ -186,11 +186,9 @@ const boundingBoxWithFallback = async (
 ): Promise<BoundingBox> => {
   let box = await getElementBox(page, elem)
   if (box == null) {
-    box = (await elem.evaluate((el: Element) => {
-      const a = el.getBoundingClientRect()
-      console.log(a)
-      return a
-    })) as BoundingBox
+    box = (await elem.evaluate((el: Element) =>
+      el.getBoundingClientRect()
+    )) as BoundingBox
   }
 
   return box
@@ -235,7 +233,6 @@ export const createCursor = (
     try {
       if (!moving) {
         const rand = await getRandomPagePoint(page)
-        console.log(rand)
         await tracePath(path(previous, rand), true)
         previous = rand
       }
