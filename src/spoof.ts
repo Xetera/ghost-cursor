@@ -15,7 +15,7 @@ interface BoxOptions {
 interface MoveOptions extends BoxOptions {
   readonly waitForSelector: number
   readonly moveDelay?: number
-  readonly maxTries: number
+  readonly maxTries?: number
 }
 interface ClickOptions extends MoveOptions {
   readonly waitForClick: number
