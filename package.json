@@ -35,5 +35,15 @@
     "puppeteer": "14",
     "ts-standard": "11",
     "typescript": "4"
+  },
+  "jest": {
+    "verbose": true,
+    "preset": "jest-puppeteer",
+    "modulePathIgnorePatterns": [
+      "./lib"
+    ],
+    "transform": {
+      "^.+\\.(t|j)sx?$": "@swc/jest"
+    }
   }
 }
