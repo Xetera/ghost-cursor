@@ -40,7 +40,12 @@
     "verbose": true,
     "preset": "jest-puppeteer",
     "modulePathIgnorePatterns": [
-      "./lib"
+      "./lib",
+      "./src/test.ts"
+    ],
+    "reporters": [
+      "default",
+      "github-actions"
     ],
     "transform": {
       "^.+\\.(t|j)sx?$": "@swc/jest"
