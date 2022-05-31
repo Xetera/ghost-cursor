@@ -9,7 +9,7 @@
     "prepare": "husky install && yarn lint && yarn build",
     "build": "tsc",
     "lint": "yarn ts-standard --fix",
-    "test": "exit 0"
+    "test": "jest"
   },
   "keywords": [
     "bezier-curve",
@@ -26,9 +26,29 @@
     "bezier-js": "^6"
   },
   "devDependencies": {
+    "@swc/core": "^1.2.194",
+    "@swc/jest": "^0.2.21",
+    "@types/jest": "^27.5.1",
     "husky": "8",
+    "jest": "^28.1.0",
+    "jest-puppeteer": "^6.1.0",
     "puppeteer": "14",
     "ts-standard": "11",
     "typescript": "4"
+  },
+  "jest": {
+    "verbose": true,
+    "preset": "jest-puppeteer",
+    "modulePathIgnorePatterns": [
+      "./lib",
+      "./src/test.ts"
+    ],
+    "reporters": [
+      "default",
+      "github-actions"
+    ],
+    "transform": {
+      "^.+\\.(t|j)sx?$": "@swc/jest"
+    }
   }
 }
