@@ -1,7 +1,7 @@
 module.exports = {
   launch: {
     dumpio: true,
-    headless: false,
+    headless: true,
     product: 'chrome'
   },
   browserContext: 'default'
