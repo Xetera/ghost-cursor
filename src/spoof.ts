@@ -330,7 +330,7 @@ export const createCursor = (
           } catch (e) {
             // use regular JS scroll method as a fallback
             console.debug('Falling back to JS scroll method', e)
-            await elem.evaluate((e) => e.scrollIntoView({ behavior: 'smooth' }))
+            await elem.evaluate((e) => e.scrollIntoView({ block: 'center' }))
             await new Promise((resolve) => setTimeout(resolve, 2000)) // Wait a bit until the scroll has finished
           }
         }
