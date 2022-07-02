@@ -72,10 +72,14 @@ const getRandomBoxPoint = (
   }
 }
 
+// The function signature to access the internal CDP client changed in puppeteer 14.4.1
+const getCDPClient = (page: any) => typeof page._client === 'function' ? page._client() : page._client
+
 // Get a random point on a browser window
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = page.target()._targetId
-  const window = await (page as any)._client.send(
+  const client = getCDPClient(page as any)
+  const window = await client.send(
     'Browser.getWindowForTarget',
     { targetId }
   )
@@ -98,7 +102,8 @@ const getElementBox = async (
   }
 
   try {
-    const quads = await (page as any)._client.send('DOM.getContentQuads', {
+    const client = getCDPClient(page as any)
+    const quads = await client.send('DOM.getContentQuads', {
       objectId: element._remoteObject.objectId
     })
     const elementBox = {
