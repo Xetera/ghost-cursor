@@ -77,7 +77,7 @@ const getCDPClient = (page: any): CDPSession => typeof page._client === 'functio
 
 // Get a random point on a browser window
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
-  const targetId: string = page.target()._targetId
+  const targetId: string = (page.target() as any)._targetId
   const window = await getCDPClient(page).send(
     'Browser.getWindowForTarget',
     { targetId }
@@ -96,13 +96,14 @@ const getElementBox = async (
   element: ElementHandle,
   relativeToMainFrame: boolean = true
 ): Promise<BoundingBox | null> => {
-  if (element._remoteObject.objectId === undefined) {
+  const objectId: string = (element as any)._remoteObject?.objectId
+  if (objectId === undefined) {
     return null
   }
 
   try {
     const quads = await getCDPClient(page).send('DOM.getContentQuads', {
-      objectId: element._remoteObject.objectId
+      objectId
     })
     const elementBox = {
       x: quads.quads[0][0],
@@ -325,10 +326,11 @@ export const createCursor = (
         }
 
         // Make sure the object is in view
-        if (elem._remoteObject?.objectId !== undefined) {
+        const objectId = (elem as any)._remoteObject?.objectId
+        if (objectId !== undefined) {
           try {
             await getCDPClient(page).send('DOM.scrollIntoViewIfNeeded', {
-              objectId: elem._remoteObject.objectId
+              objectId
             })
           } catch (e) {
             // use regular JS scroll method as a fallback

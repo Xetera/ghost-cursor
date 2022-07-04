@@ -28,11 +28,11 @@
   "devDependencies": {
     "@swc/core": "^1.2.194",
     "@swc/jest": "^0.2.21",
-    "@types/jest": "^27.5.1",
+    "@types/jest": "28",
     "husky": "8",
     "jest": "^28.1.0",
     "jest-puppeteer": "^6.1.0",
-    "puppeteer": "14",
+    "puppeteer": "15",
     "ts-standard": "11",
     "typescript": "4"
   },
