@@ -1,4 +1,4 @@
-import { ElementHandle, Page, BoundingBox } from 'puppeteer'
+import { ElementHandle, Page, BoundingBox, CDPSession } from 'puppeteer'
 import {
   Vector,
   bezierCurve,
@@ -72,10 +72,13 @@ const getRandomBoxPoint = (
   }
 }
 
+// The function signature to access the internal CDP client changed in puppeteer 14.4.1
+const getCDPClient = (page: any): CDPSession => typeof page._client === 'function' ? page._client() : page._client
+
 // Get a random point on a browser window
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = page.target()._targetId
-  const window = await (page as any)._client.send(
+  const window = await getCDPClient(page).send(
     'Browser.getWindowForTarget',
     { targetId }
   )
@@ -98,7 +101,7 @@ const getElementBox = async (
   }
 
   try {
-    const quads = await (page as any)._client.send('DOM.getContentQuads', {
+    const quads = await getCDPClient(page).send('DOM.getContentQuads', {
       objectId: element._remoteObject.objectId
     })
     const elementBox = {
@@ -324,7 +327,7 @@ export const createCursor = (
         // Make sure the object is in view
         if (elem._remoteObject?.objectId !== undefined) {
           try {
-            await (page as any)._client.send('DOM.scrollIntoViewIfNeeded', {
+            await getCDPClient(page).send('DOM.scrollIntoViewIfNeeded', {
               objectId: elem._remoteObject.objectId
             })
           } catch (e) {
