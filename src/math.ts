@@ -1,4 +1,4 @@
-import Bezier from 'bezier-js'
+import { Bezier } from 'bezier-js'
 
 export interface Vector {
   x: number
