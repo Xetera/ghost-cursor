@@ -96,7 +96,7 @@ const getElementBox = async (
   element: ElementHandle,
   relativeToMainFrame: boolean = true
 ): Promise<BoundingBox | null> => {
-  const objectId: string = (element as any)._remoteObject?.objectId
+  const objectId: string = (element as any).remoteObject()?.objectId
   if (objectId === undefined) {
     return null
   }
@@ -326,7 +326,7 @@ export const createCursor = (
         }
 
         // Make sure the object is in view
-        const objectId = (elem as any)._remoteObject?.objectId
+        const objectId = (elem as any).remoteObject()?.objectId
         if (objectId !== undefined) {
           try {
             await getCDPClient(page).send('DOM.scrollIntoViewIfNeeded', {
