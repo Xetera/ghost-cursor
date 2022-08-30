@@ -96,7 +96,7 @@ const getElementBox = async (
   element: ElementHandle,
   relativeToMainFrame: boolean = true
 ): Promise<BoundingBox | null> => {
-  const objectId: string = (element as any)._remoteObject?.objectId
+  const objectId = element.remoteObject().objectId
   if (objectId === undefined) {
     return null
   }
@@ -112,12 +112,12 @@ const getElementBox = async (
       height: quads.quads[0][5] - quads.quads[0][1]
     }
     if (!relativeToMainFrame) {
-      const elementFrame = element.executionContext().frame()
+      const elementFrame = await element.contentFrame()
       const iframes =
         elementFrame != null
           ? await elementFrame.parentFrame()?.$x('//iframe')
           : null
-      let frame: ElementHandle<Element> | undefined
+      let frame: ElementHandle<Node> | undefined
       if (iframes != null) {
         for (const iframe of iframes) {
           if ((await iframe.contentFrame()) === elementFrame) frame = iframe
@@ -306,7 +306,7 @@ export const createCursor = (
                 timeout: options.waitForSelector
               })
             }
-            ;[elem] = await page.$x(selector)
+            elem = await page.$x(selector)[0]
           } else {
             if (options?.waitForSelector !== undefined) {
               await page.waitForSelector(selector, {
@@ -326,7 +326,7 @@ export const createCursor = (
         }
 
         // Make sure the object is in view
-        const objectId = (elem as any)._remoteObject?.objectId
+        const objectId = elem.remoteObject().objectId
         if (objectId !== undefined) {
           try {
             await getCDPClient(page).send('DOM.scrollIntoViewIfNeeded', {
