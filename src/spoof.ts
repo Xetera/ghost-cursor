@@ -9,22 +9,22 @@ import {
 } from './math'
 export { default as installMouseHelper } from './mouse-helper'
 
-interface BoxOptions {
+export interface BoxOptions {
   readonly paddingPercentage: number
 }
 
-interface MoveOptions extends BoxOptions {
+export interface MoveOptions extends BoxOptions {
   readonly waitForSelector: number
   readonly moveDelay?: number
   readonly maxTries?: number
   readonly moveSpeed?: number
 }
 
-interface ClickOptions extends MoveOptions {
+export interface ClickOptions extends MoveOptions {
   readonly waitForClick: number
 }
 
-interface PathOptions {
+export interface PathOptions {
   readonly spreadOverride?: number
   readonly moveSpeed?: number
 }
