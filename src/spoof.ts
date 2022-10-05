@@ -14,14 +14,14 @@ export interface BoxOptions {
 }
 
 export interface MoveOptions extends BoxOptions {
-  readonly waitForSelector: number
+  readonly waitForSelector?: number
   readonly moveDelay?: number
   readonly maxTries?: number
   readonly moveSpeed?: number
 }
 
 export interface ClickOptions extends MoveOptions {
-  readonly waitForClick: number
+  readonly waitForClick?: number
 }
 
 export interface PathOptions {
