@@ -10,7 +10,7 @@ import {
 export { default as installMouseHelper } from './mouse-helper'
 
 export interface BoxOptions {
-  readonly paddingPercentage: number
+  readonly paddingPercentage?: number
 }
 
 export interface MoveOptions extends BoxOptions {
