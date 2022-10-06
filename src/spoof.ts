@@ -323,7 +323,7 @@ export const createCursor = (
             }
             elem = await page.$(selector)
           }
-          if (elem == null) {
+          if (elem === null) {
             throw new Error(
               `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`
             )
