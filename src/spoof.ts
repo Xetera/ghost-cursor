@@ -306,7 +306,7 @@ export const createCursor = (
         }
 
         actions.toggleRandomMove(false)
-        let elem: ElementHandle | null = null
+        let elem: ElementHandle<Element> | null = null
         if (typeof selector === 'string') {
           if (selector.startsWith('//') || selector.startsWith('(//')) {
             if (options?.waitForSelector !== undefined) {
@@ -314,7 +314,7 @@ export const createCursor = (
                 timeout: options.waitForSelector
               })
             }
-            elem = (await page.$x(selector))[0]
+            elem = (await page.$x(selector))[0].asElement() as ElementHandle<Element>
           } else {
             if (options?.waitForSelector !== undefined) {
               await page.waitForSelector(selector, {
@@ -323,7 +323,7 @@ export const createCursor = (
             }
             elem = await page.$(selector)
           }
-          if (!elem) {
+          if (elem == null) {
             throw new Error(
               `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`
             )
