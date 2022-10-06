@@ -314,7 +314,7 @@ export const createCursor = (
                 timeout: options.waitForSelector
               })
             }
-            elem = await page.$x(selector)[0]
+            elem = (await page.$x(selector))[0]
           } else {
             if (options?.waitForSelector !== undefined) {
               await page.waitForSelector(selector, {
@@ -323,7 +323,7 @@ export const createCursor = (
             }
             elem = await page.$(selector)
           }
-          if (elem === null) {
+          if (!elem) {
             throw new Error(
               `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`
             )
