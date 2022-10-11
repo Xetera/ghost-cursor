@@ -17,9 +17,14 @@ describe('Mouse movements', () => {
     })
   })
 
-  it('Should click on the element without throwing an error', async () => {
+  it('Should click on the element without throwing an error (CSS selector)', async () => {
     cursor = createCursor(page)
     await cursor.click('#box')
+  })
+
+  it('Should click on the element without throwing an error (XPath selector)', async () => {
+    cursor = createCursor(page)
+    await cursor.click('//*[@id="box"]')
   })
 })
 
