@@ -49,7 +49,7 @@ import puppeteer from "puppeteer"
 const run = async (url) => {
   const selector = "#sign-up button"
   const browser = await puppeteer.launch({ headless: false });
-  const page = browser.newPage()
+  const page = await browser.newPage()
   const cursor = createCursor(page)
   await page.goto(url)
   await page.waitForSelector(selector)
