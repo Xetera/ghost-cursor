@@ -1,6 +1,6 @@
 {
   "name": "ghost-cursor",
-  "version": "1.1.17",
+  "version": "1.1.18",
   "description": "Move your mouse like a human in puppeteer or generate realistic movements on any 2D plane",
   "repository": "https://github.com/Xetera/ghost-cursor",
   "main": "lib/spoof.js",
@@ -23,7 +23,7 @@
   ],
   "dependencies": {
     "@types/bezier-js": "4",
-    "bezier-js": "=6.1.0"
+    "bezier-js": "^6.1.3"
   },
   "devDependencies": {
     "@swc/core": "^1.2.194",
