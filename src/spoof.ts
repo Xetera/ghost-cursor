@@ -156,7 +156,7 @@ export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?
 
   const defaultWidth = 100
   const minSteps = 25
-  const width = 'width' in end && end.width!=0  ? end.width : defaultWidth
+  const width = 'width' in end && end.width !== 0 ? end.width : defaultWidth
   const curve = bezierCurve(start, end, spreadOverride)
   const length = curve.length() * 0.8
 
