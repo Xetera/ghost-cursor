@@ -92,3 +92,10 @@ that way, so only one side of the line is picked when generating random points.
 When calculating how fast the mouse should be moving we use <a href="https://en.wikipedia.org/wiki/Fitts%27s_law">Fitts's Law</a>
 to determine the amount of points we should be returning relative to the width of the element being clicked on and the distance
 between the mouse and the object.
+
+## To turn on logging, please set your DEBUG env variable like so:
+
+- OSX: `DEBUG="ghost-cursor:*"`
+- Linux: `DEBUG="ghost-cursor:*"`
+- Windows CMD: `set DEBUG=ghost-cursor:*`
+- Windows PowerShell: `$env:DEBUG = "ghost-cursor:*"`

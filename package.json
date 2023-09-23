@@ -23,11 +23,13 @@
   ],
   "dependencies": {
     "@types/bezier-js": "4",
-    "bezier-js": "^6.1.3"
+    "bezier-js": "^6.1.3",
+    "debug": "^4.3.4"
   },
   "devDependencies": {
     "@swc/core": "^1.2.194",
     "@swc/jest": "^0.2.21",
+    "@types/debug": "^4.1.9",
     "@types/jest": "29",
     "husky": "8",
     "jest": "29",
