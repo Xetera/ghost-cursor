@@ -25,6 +25,7 @@ export interface MoveOptions extends BoxOptions {
 
 export interface ClickOptions extends MoveOptions {
   readonly waitForClick?: number
+  readonly clickCount?: number
 }
 
 export interface PathOptions {
@@ -282,7 +283,7 @@ export const createCursor = (
       }
 
       try {
-        await page.mouse.down()
+        await page.mouse.down({ clickCount: options?.clickCount ?? 1 })
         if (options?.waitForClick !== undefined) {
           await delay(options.waitForClick)
         }
