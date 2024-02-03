@@ -73,6 +73,63 @@ hovering over the exact center of the element.
 
 > Ghost cursor in action on a form
 
+## Methods
+
+### `toggleRandomMove(random: boolean): void`
+
+Toggles random mouse movements on or off.
+
+### `click(selector?: string | ElementHandle, options?: ClickOptions): Promise<void>`
+
+Simulates a mouse click at the specified selector or element.
+
+- **selector (optional):** CSS selector or ElementHandle to identify the target element.
+- **options (optional):** Additional options for clicking.
+  - `paddingPercentage (number):` Percentage of padding to be added around the element. Default is `0`.
+  - `waitForSelector (number):` Time to wait for the selector to appear in milliseconds.
+  - `moveDelay (number):` Delay after moving the mouse in milliseconds.
+  - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
+  - `moveSpeed (number):` Speed of mouse movement.
+
+### `move(selector: string | ElementHandle, options?: MoveOptions): Promise<void>`
+
+Moves the mouse to the specified selector or element.
+
+- **selector:** CSS selector or ElementHandle to identify the target element.
+- **options (optional):** Additional options for moving.
+  - `paddingPercentage (number):` Percentage of padding to be added around the element. Default is `0`.
+  - `waitForSelector (number):` Time to wait for the selector to appear in milliseconds.
+  - `moveDelay (number):` Delay after moving the mouse in milliseconds.
+  - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
+  - `moveSpeed (number):` Speed of mouse movement.
+
+### `moveTo(destination: Vector): Promise<void>`
+
+Moves the mouse to the specified destination point.
+
+- **destination:** An object with `x` and `y` coordinates representing the target position.
+
+### Other Utility Methods
+
+#### `installMouseHelper(page: Page): void`
+
+Installs a mouse helper on the page. Makes pointer visible.s
+
+#### `getRandomPagePoint(page: Page): Promise<Vector>`
+
+Gets a random point on the browser window.
+
+#### `path(point: Vector, target: Vector, optionsOrSpread?: number | PathOptions): Vector[]`
+
+Generates a set of points for mouse movement between two coordinates.
+
+- **point:** Starting point of the movement.
+- **target:** Ending point of the movement.
+- **optionsOrSpread (optional):** Additional options for generating the path.
+  - `spreadOverride (number):` Override the spread of the generated path.
+  - `moveSpeed (number):` Speed of mouse movement.
+
+
 ## How does it work
 
 Bezier curves do almost all the work here. They let us create an infinite amount of curves between any 2 points we want
