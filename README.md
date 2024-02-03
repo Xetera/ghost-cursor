@@ -113,7 +113,7 @@ Moves the mouse to the specified destination point.
 
 #### `installMouseHelper(page: Page): void`
 
-Installs a mouse helper on the page. Makes pointer visible.s
+Installs a mouse helper on the page. Makes pointer visible.
 
 #### `getRandomPagePoint(page: Page): Promise<Vector>`
 
