@@ -24,6 +24,7 @@ export interface MoveOptions extends BoxOptions {
 }
 
 export interface ClickOptions extends MoveOptions {
+  readonly hesitate?: number
   readonly waitForClick?: number
 }
 
@@ -282,6 +283,9 @@ export const createCursor = (
       }
 
       try {
+        if (options?.hesitate !== undefined) {
+          await delay(options.hesitate)
+        }
         await page.mouse.down()
         if (options?.waitForClick !== undefined) {
           await delay(options.waitForClick)
