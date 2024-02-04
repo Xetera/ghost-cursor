@@ -75,23 +75,21 @@ hovering over the exact center of the element.
 
 ## Methods
 
-### `toggleRandomMove(random: boolean): void`
+#### `toggleRandomMove(random: boolean): void`
 
 Toggles random mouse movements on or off.
 
-### `click(selector?: string | ElementHandle, options?: ClickOptions): Promise<void>`
+#### `click(selector?: string | ElementHandle, options?: ClickOptions): Promise<void>`
 
 Simulates a mouse click at the specified selector or element.
 
 - **selector (optional):** CSS selector or ElementHandle to identify the target element.
 - **options (optional):** Additional options for clicking.
-  - `paddingPercentage (number):` Percentage of padding to be added around the element. Default is `0`.
-  - `waitForSelector (number):` Time to wait for the selector to appear in milliseconds.
+  - `hesitate (number):` Delay before initiating the click action in milliseconds.
+  - `waitForClick (number):` Delay after pressing the mouse button in milliseconds.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds.
-  - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
-  - `moveSpeed (number):` Speed of mouse movement.
 
-### `move(selector: string | ElementHandle, options?: MoveOptions): Promise<void>`
+#### `move(selector: string | ElementHandle, options?: MoveOptions): Promise<void>`
 
 Moves the mouse to the specified selector or element.
 
@@ -103,17 +101,17 @@ Moves the mouse to the specified selector or element.
   - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
   - `moveSpeed (number):` Speed of mouse movement.
 
-### `moveTo(destination: Vector): Promise<void>`
+#### `moveTo(destination: Vector): Promise<void>`
 
 Moves the mouse to the specified destination point.
 
-- **destination:** An object with `x` and `y` coordinates representing the target position.
+- **destination:** An object with `x` and `y` coordinates representing the target position. For example, `{ x: 500, y: 300 }`.
 
 ### Other Utility Methods
 
 #### `installMouseHelper(page: Page): void`
 
-Installs a mouse helper on the page. Makes pointer visible.
+Installs a mouse helper on the page. Makes pointer visible. Use for debugging only.
 
 #### `getRandomPagePoint(page: Page): Promise<Vector>`
 
