@@ -211,7 +211,8 @@ const boundingBoxWithFallback = async (
 export const createCursor = (
   page: Page,
   start: Vector = origin,
-  performRandomMoves: boolean = false
+  performRandomMoves: boolean = false,
+  moveOptions?: MoveOptions
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const overshootSpread = 10
@@ -257,7 +258,7 @@ export const createCursor = (
       } else {
         await delay(Math.random() * 2000) // 2s by default
       }
-      randomMove().then(
+      randomMove(options).then(
         (_) => {},
         (_) => {}
       ) // fire and forget, recursive function
@@ -401,7 +402,7 @@ export const createCursor = (
 
   // Start random mouse movements. Do not await the promise but return immediately
   if (performRandomMoves) {
-    randomMove().then(
+    randomMove(moveOptions).then(
       (_) => {},
       (_) => {}
     )
