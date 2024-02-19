@@ -1,21 +1,21 @@
 name: Publish to NPM
 on:
   workflow_dispatch:
-  create:
+  push:
     tags:
-      - v* # only run if new tag is created
+      - 'v*' # only run if new tag is pushed
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Install Node v16
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: 20
       - name: Install dependencies and build
         run: yarn
-      - uses: JS-DevTools/npm-publish@v1
+      - uses: JS-DevTools/npm-publish@v3
         with:
           token: ${{ secrets.NPM_TOKEN }}
-          check-version: true # only publish if the version in package.json has changed
+          strategy: all # will publish any version that does not yet exist in the registry
