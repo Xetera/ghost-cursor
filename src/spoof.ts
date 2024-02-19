@@ -128,7 +128,7 @@ const getElementBox = async (
       const elementFrame = await element.contentFrame()
       const iframes =
         elementFrame != null
-          ? await elementFrame.parentFrame()?.$x('//iframe')
+          ? await elementFrame.parentFrame()?.$$('xpath/.//iframe')
           : null
       let frame: ElementHandle<Node> | undefined
       if (iframes != null) {
@@ -316,12 +316,13 @@ export const createCursor = (
         let elem: ElementHandle<Element> | null = null
         if (typeof selector === 'string') {
           if (selector.startsWith('//') || selector.startsWith('(//')) {
+            selector = `xpath/.${selector}`
             if (options?.waitForSelector !== undefined) {
-              await page.waitForXPath(selector, {
+              await page.waitForSelector(selector, {
                 timeout: options.waitForSelector
               })
             }
-            const [handle] = await page.$x(selector)
+            const [handle] = await page.$$(selector)
             elem = handle.asElement() as ElementHandle<Element>
           } else {
             if (options?.waitForSelector !== undefined) {
