@@ -6,7 +6,7 @@
   "main": "lib/spoof.js",
   "types": "lib/spoof.d.ts",
   "scripts": {
-    "prepare": "husky install && yarn lint && yarn build",
+    "prepare": "husky && yarn lint && yarn build",
     "build": "tsc",
     "lint": "yarn ts-standard --fix",
     "test": "jest"
@@ -31,10 +31,10 @@
     "@swc/jest": "^0.2.21",
     "@types/debug": "^4.1.9",
     "@types/jest": "29",
-    "husky": "8",
+    "husky": "9",
     "jest": "29",
-    "jest-puppeteer": "9",
-    "puppeteer": "21",
+    "jest-puppeteer": "10",
+    "puppeteer": "22",
     "ts-standard": "12",
     "typescript": "5"
   },
