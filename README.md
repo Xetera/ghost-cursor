@@ -109,7 +109,7 @@ Moves the mouse to the specified destination point.
 
 ### Other Utility Methods
 
-#### `installMouseHelper(page: Page): void`
+#### `installMouseHelper(page: Page): Promise<void>`
 
 Installs a mouse helper on the page. Makes pointer visible. Use for debugging only.
 
