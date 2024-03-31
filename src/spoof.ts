@@ -2,7 +2,9 @@ import { ElementHandle, Page, BoundingBox, CDPSession } from 'puppeteer'
 import debug from 'debug'
 import {
   Vector,
+  TimedVector,
   bezierCurve,
+  bezierCurveSpeed,
   direction,
   magnitude,
   origin,
@@ -31,6 +33,7 @@ export interface ClickOptions extends MoveOptions {
 export interface PathOptions {
   readonly spreadOverride?: number
   readonly moveSpeed?: number
+  readonly showTimestamps?: boolean
 }
 
 export interface GhostCursor {
@@ -152,11 +155,11 @@ const getElementBox = async (
   }
 }
 
-export function path (point: Vector, target: Vector, optionsOrSpread?: number | PathOptions)
-export function path (point: Vector, target: BoundingBox, optionsOrSpread?: number | PathOptions)
-export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?: number | PathOptions): Vector[] {
-  const spreadOverride = typeof optionsOrSpread === 'number' ? optionsOrSpread : optionsOrSpread?.spreadOverride
-  const moveSpeed = typeof optionsOrSpread === 'object' && optionsOrSpread.moveSpeed
+export function path (point: Vector, target: Vector, options?: number | PathOptions)
+export function path (point: Vector, target: BoundingBox, options?: number | PathOptions)
+export function path (start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] | TimedVector[] {
+  const spreadOverride = typeof options === 'number' ? options : options?.spreadOverride
+  const moveSpeed = typeof options === 'object' && options.moveSpeed
 
   const defaultWidth = 100
   const minSteps = 25
@@ -168,17 +171,57 @@ export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?
   const baseTime = speed * minSteps
   const steps = Math.ceil((Math.log2(fitts(length, width) + 1) + baseTime) * 3)
   const re = curve.getLUT(steps)
-  return clampPositive(re)
+  return clampPositive(re, options)
 }
 
-const clampPositive = (vectors: Vector[]): Vector[] => {
+const clampPositive = (vectors: Vector[], options?: number | PathOptions): Vector[] | TimedVector[] => {
   const clamp0 = (elem: number): number => Math.max(0, elem)
-  return vectors.map((vector) => {
+  const clampedVectors = vectors.map((vector) => {
     return {
       x: clamp0(vector.x),
       y: clamp0(vector.y)
     }
   })
+
+  return (typeof options === 'number' || options?.showTimestamps === false) ? clampedVectors : generateTimestamps(clampedVectors, options)
+}
+
+const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVector[] => {
+  const speed = options?.moveSpeed ?? (Math.random() * 0.5 + 0.5)
+  const timeToMove = (P0: Vector, P1: Vector, P2: Vector, P3: Vector, samples: number): number => {
+    let total = 0
+    const dt = 1 / samples
+
+    for (let t = 0; t < 1; t += dt) {
+      const v1 = bezierCurveSpeed(t * dt, P0, P1, P2, P3)
+      const v2 = bezierCurveSpeed(t, P0, P1, P2, P3)
+      total += (v1 + v2) * dt / 2
+    }
+
+    return Math.round(total / speed)
+  }
+
+  const timedVectors = vectors.map((vector) => {
+    return {
+      ...vector,
+      timestamp: 0
+    }
+  })
+
+  for (let i = 0; i < timedVectors.length; i++) {
+    const P0 = i === 0 ? timedVectors[i] : timedVectors[i - 1]
+    const P1 = timedVectors[i]
+    const P2 = i === timedVectors.length - 1 ? timedVectors[i] : timedVectors[i + 1]
+    const P3 = i === timedVectors.length - 1 ? timedVectors[i] : timedVectors[i + 1]
+    const time = timeToMove(P0, P1, P2, P3, timedVectors.length)
+
+    timedVectors[i] = {
+      ...timedVectors[i],
+      timestamp: i === 0 ? Date.now() : (timedVectors[i - 1] as TimedVector).timestamp + time
+    }
+  }
+
+  return timedVectors
 }
 
 const overshootThreshold = 500
