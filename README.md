@@ -47,7 +47,7 @@ import { path } from "ghost-cursor"
 const from = { x: 100, y: 100 }
 const to = { x: 600, y: 700 }
 
-const routes = path(from, to, { showTimestamps: true })
+const route = path(from, to, { showTimestamps: true })
 
 /**
  * [
