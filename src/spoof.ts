@@ -13,23 +13,58 @@ export { default as installMouseHelper } from './mouse-helper'
 const log = debug('ghost-cursor')
 
 export interface BoxOptions {
+  /**
+   * Percentage of padding to be added around the element.
+   * @default 0
+   */
   readonly paddingPercentage?: number
 }
 
 export interface MoveOptions extends BoxOptions {
+  /**
+   * Time to wait for the selector to appear in milliseconds.
+   * Default is to not wait for selector.
+   */
   readonly waitForSelector?: number
+  /**
+   * Delay after moving the mouse in milliseconds.
+   * @default 2000
+   */
   readonly moveDelay?: number
+  /**
+   * Maximum number of attempts to mouse-over the element.
+   * @default 10
+   */
   readonly maxTries?: number
+  /**
+   * Speed of mouse movement.
+   * Default is random.
+   */
   readonly moveSpeed?: number
 }
 
 export interface ClickOptions extends MoveOptions {
+  /**
+   * Delay before initiating the click action in milliseconds.
+   * @default 0
+   */
   readonly hesitate?: number
+  /**
+   * Delay between mousedown and mouseup in milliseconds.
+   * @default 0
+   */
   readonly waitForClick?: number
 }
 
 export interface PathOptions {
+  /**
+   * Override the spread of the generated path.
+   */
   readonly spreadOverride?: number
+  /**
+   * Speed of mouse movement.
+   * Default is random.
+   */
   readonly moveSpeed?: number
 }
 
