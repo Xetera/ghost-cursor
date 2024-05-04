@@ -85,9 +85,9 @@ Simulates a mouse click at the specified selector or element.
 
 - **selector (optional):** CSS selector or ElementHandle to identify the target element.
 - **options (optional):** Additional options for clicking.
-  - `hesitate (number):` Delay before initiating the click action in milliseconds.
-  - `waitForClick (number):` Delay after pressing the mouse button in milliseconds.
-  - `moveDelay (number):` Delay after moving the mouse in milliseconds.
+  - `hesitate (number):` Delay before initiating the click action in milliseconds. Default is `0`.
+  - `waitForClick (number):` Delay between mousedown and mouseup in milliseconds. Default is `0`.
+  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `2000`.
 
 #### `move(selector: string | ElementHandle, options?: MoveOptions): Promise<void>`
 
@@ -96,10 +96,10 @@ Moves the mouse to the specified selector or element.
 - **selector:** CSS selector or ElementHandle to identify the target element.
 - **options (optional):** Additional options for moving.
   - `paddingPercentage (number):` Percentage of padding to be added around the element. Default is `0`.
-  - `waitForSelector (number):` Time to wait for the selector to appear in milliseconds.
-  - `moveDelay (number):` Delay after moving the mouse in milliseconds.
+  - `waitForSelector (number):` Time to wait for the selector to appear in milliseconds. Default is to not wait for selector.
+  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `2000`.
   - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
-  - `moveSpeed (number):` Speed of mouse movement.
+  - `moveSpeed (number):` Speed of mouse movement. Default is random.
 
 #### `moveTo(destination: Vector): Promise<void>`
 
@@ -125,7 +125,7 @@ Generates a set of points for mouse movement between two coordinates.
 - **target:** Ending point of the movement.
 - **optionsOrSpread (optional):** Additional options for generating the path.
   - `spreadOverride (number):` Override the spread of the generated path.
-  - `moveSpeed (number):` Speed of mouse movement.
+  - `moveSpeed (number):` Speed of mouse movement. Default is random.
 
 
 ## How does it work
