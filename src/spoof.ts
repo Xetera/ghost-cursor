@@ -250,7 +250,16 @@ const boundingBoxWithFallback = async (
 
 export const createCursor = (
   page: Page,
+  /**
+   * Cursor start position.
+   * @default { x: 0, y: 0 }
+   */
   start: Vector = origin,
+  /**
+   * Initially perform random movements.
+   * If `move`,`click`, etc. is performed, these random movements end.
+   * @default false
+   */
   performRandomMoves: boolean = false
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
