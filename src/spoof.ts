@@ -41,6 +41,12 @@ export interface MoveOptions extends BoxOptions {
    * Default is random.
    */
   readonly moveSpeed?: number
+  /**
+   * Distance from current location to destination that triggers overshoot to
+   * occur. (Below this distance, no overshoot will occur).
+   * @default 500
+   */
+  readonly overshootThreshold?: number
 }
 
 export interface ClickOptions extends MoveOptions {
@@ -216,9 +222,8 @@ const clampPositive = (vectors: Vector[]): Vector[] => {
   })
 }
 
-const overshootThreshold = 500
-const shouldOvershoot = (a: Vector, b: Vector): boolean =>
-  magnitude(direction(a, b)) > overshootThreshold
+const shouldOvershoot = (a: Vector, b: Vector, threshold: number): boolean =>
+  magnitude(direction(a, b)) > threshold
 
 const intersectsElement = (vec: Vector, box: BoundingBox): boolean => {
   return (
@@ -395,7 +400,11 @@ export const createCursor = (
         const { height, width } = box
         const destination = getRandomBoxPoint(box, options)
         const dimensions = { height, width }
-        const overshooting = shouldOvershoot(previous, destination)
+        const overshooting = shouldOvershoot(
+          previous,
+          destination,
+          options?.overshootThreshold ?? 500
+        )
         const to = overshooting
           ? overshoot(destination, overshootRadius)
           : destination
