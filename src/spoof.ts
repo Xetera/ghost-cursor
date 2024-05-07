@@ -28,7 +28,7 @@ export interface MoveOptions extends BoxOptions {
   readonly waitForSelector?: number
   /**
    * Delay after moving the mouse in milliseconds.
-   * @default 2000
+   * @default 0
    */
   readonly moveDelay?: number
   /**
@@ -54,6 +54,11 @@ export interface ClickOptions extends MoveOptions {
    * @default 0
    */
   readonly waitForClick?: number
+  /**
+   * Delay after performing the click in milliseconds.
+   * @default 2000
+   */
+  readonly moveDelay?: number
 }
 
 export interface PathOptions {
@@ -437,7 +442,7 @@ export const createCursor = (
       const moveDelay =
       options?.moveDelay !== undefined && options?.moveDelay >= 0
         ? options.moveDelay
-        : 2000 // 2s by default
+        : 0 // No move delay by default
       await delay(Math.random() * moveDelay)
     },
     async moveTo (destination: Vector): Promise<void> {
