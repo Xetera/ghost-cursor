@@ -287,9 +287,7 @@ export const createCursor = (
     try {
       if (!moving) {
         const rand = await getRandomPagePoint(page)
-        await tracePath(path(previous, rand, {
-          moveSpeed: options?.moveSpeed
-        }), true)
+        await tracePath(path(previous, rand, options), true)
         previous = rand
       }
 
