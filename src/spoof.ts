@@ -84,7 +84,7 @@ export interface GhostCursor {
 // Helper function to wait a specified number of milliseconds
 const delay = async (ms: number): Promise<void> => {
   if (ms < 1) return
-  await new Promise((resolve) => setTimeout(resolve, ms))
+  return await new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**
@@ -287,11 +287,7 @@ export const createCursor = (
         await tracePath(path(previous, rand, options), true)
         previous = rand
       }
-      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
-        await delay(Math.random() * options.moveDelay)
-      } else {
-        await delay(Math.random() * 2000) // 2s by default
-      }
+      await delay(Math.random() * (options?.moveDelay ?? 2000))
       randomMove().then(
         (_) => {},
         (_) => {}
@@ -326,11 +322,7 @@ export const createCursor = (
         log('Warning: could not click mouse, error message:', error)
       }
 
-      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
-        await delay(Math.random() * options.moveDelay)
-      } else {
-        await delay(Math.random() * 2000) // 2s by default
-      }
+      await delay(Math.random() * (options?.moveDelay ?? 2000))
 
       actions.toggleRandomMove(true)
     },
