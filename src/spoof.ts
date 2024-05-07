@@ -84,7 +84,6 @@ export interface GhostCursor {
 // Helper function to wait a specified number of milliseconds
 const delay = async (ms: number): Promise<void> => {
   if (ms < 1) return
-
   await new Promise((resolve) => setTimeout(resolve, ms))
 }
 
