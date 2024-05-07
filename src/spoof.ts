@@ -287,11 +287,13 @@ export const createCursor = (
         }), true)
         previous = rand
       }
-      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
-        await delay(Math.random() * options.moveDelay)
-      } else {
-        await delay(Math.random() * 2000) // 2s by default
-      }
+
+      const moveDelay =
+        options?.moveDelay !== undefined && options?.moveDelay >= 0
+          ? options.moveDelay
+          : 2000 // 2s by default
+      await delay(Math.random() * moveDelay)
+
       randomMove().then(
         (_) => {},
         (_) => {}
@@ -313,7 +315,11 @@ export const createCursor = (
       actions.toggleRandomMove(false)
 
       if (selector !== undefined) {
-        await actions.move(selector, options)
+        await actions.move(selector, {
+          ...options,
+          // apply moveDelay after click, but not after actual move
+          moveDelay: 0
+        })
         actions.toggleRandomMove(false)
       }
 
@@ -330,11 +336,11 @@ export const createCursor = (
         log('Warning: could not click mouse, error message:', error)
       }
 
-      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
-        await delay(Math.random() * options.moveDelay)
-      } else {
-        await delay(Math.random() * 2000) // 2s by default
-      }
+      const moveDelay =
+        options?.moveDelay !== undefined && options?.moveDelay >= 0
+          ? options.moveDelay
+          : 2000 // 2s by default
+      await delay(Math.random() * moveDelay)
 
       actions.toggleRandomMove(true)
     },
@@ -426,7 +432,13 @@ export const createCursor = (
           return await go(iteration + 1)
         }
       }
-      return await go(0)
+      await go(0)
+
+      const moveDelay =
+      options?.moveDelay !== undefined && options?.moveDelay >= 0
+        ? options.moveDelay
+        : 2000 // 2s by default
+      await delay(Math.random() * moveDelay)
     },
     async moveTo (destination: Vector): Promise<void> {
       actions.toggleRandomMove(false)
