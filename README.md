@@ -100,6 +100,7 @@ Moves the mouse to the specified selector or element.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`.
   - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
+  - `overshootThreshold (number):` Distance from current location to destination that triggers overshoot to occur. (Below this distance, no overshoot will occur). Default is `500`.
 
 #### `moveTo(destination: Vector): Promise<void>`
 

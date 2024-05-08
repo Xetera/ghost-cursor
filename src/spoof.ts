@@ -41,6 +41,12 @@ export interface MoveOptions extends BoxOptions {
    * Default is random.
    */
   readonly moveSpeed?: number
+  /**
+   * Distance from current location to destination that triggers overshoot to
+   * occur. (Below this distance, no overshoot will occur).
+   * @default 500
+   */
+  readonly overshootThreshold?: number
 }
 
 export interface ClickOptions extends MoveOptions {
@@ -87,8 +93,10 @@ export interface GhostCursor {
 }
 
 // Helper function to wait a specified number of milliseconds
-const delay = async (ms: number): Promise<void> =>
-  await new Promise((resolve) => setTimeout(resolve, ms))
+const delay = async (ms: number): Promise<void> => {
+  if (ms < 1) return
+  return await new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 /**
  * Calculate the amount of time needed to move from (x1, y1) to (x2, y2)
@@ -221,9 +229,8 @@ const clampPositive = (vectors: Vector[]): Vector[] => {
   })
 }
 
-const overshootThreshold = 500
-const shouldOvershoot = (a: Vector, b: Vector): boolean =>
-  magnitude(direction(a, b)) > overshootThreshold
+const shouldOvershoot = (a: Vector, b: Vector, threshold: number): boolean =>
+  magnitude(direction(a, b)) > threshold
 
 const intersectsElement = (vec: Vector, box: BoundingBox): boolean => {
   return (
@@ -250,7 +257,16 @@ const boundingBoxWithFallback = async (
 
 export const createCursor = (
   page: Page,
+  /**
+   * Cursor start position.
+   * @default { x: 0, y: 0 }
+   */
   start: Vector = origin,
+  /**
+   * Initially perform random movements.
+   * If `move`,`click`, etc. is performed, these random movements end.
+   * @default false
+   */
   performRandomMoves: boolean = false
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
@@ -287,18 +303,10 @@ export const createCursor = (
     try {
       if (!moving) {
         const rand = await getRandomPagePoint(page)
-        await tracePath(path(previous, rand, {
-          moveSpeed: options?.moveSpeed
-        }), true)
+        await tracePath(path(previous, rand, options), true)
         previous = rand
       }
-
-      const moveDelay =
-        options?.moveDelay !== undefined && options?.moveDelay >= 0
-          ? options.moveDelay
-          : 2000 // 2s by default
-      await delay(Math.random() * moveDelay)
-
+      await delay(Math.random() * (options?.moveDelay ?? 2000))
       randomMove().then(
         (_) => {},
         (_) => {}
@@ -329,23 +337,15 @@ export const createCursor = (
       }
 
       try {
-        if (options?.hesitate !== undefined) {
-          await delay(options.hesitate)
-        }
+        await delay(options?.hesitate ?? 0)
         await page.mouse.down()
-        if (options?.waitForClick !== undefined) {
-          await delay(options.waitForClick)
-        }
+        await delay(options?.waitForClick ?? 0)
         await page.mouse.up()
       } catch (error) {
         log('Warning: could not click mouse, error message:', error)
       }
 
-      const moveDelay =
-        options?.moveDelay !== undefined && options?.moveDelay >= 0
-          ? options.moveDelay
-          : 2000 // 2s by default
-      await delay(Math.random() * moveDelay)
+      await delay(Math.random() * (options?.moveDelay ?? 2000))
 
       actions.toggleRandomMove(true)
     },
@@ -406,19 +406,21 @@ export const createCursor = (
         const { height, width } = box
         const destination = getRandomBoxPoint(box, options)
         const dimensions = { height, width }
-        const overshooting = shouldOvershoot(previous, destination)
+        const overshooting = shouldOvershoot(
+          previous,
+          destination,
+          options?.overshootThreshold ?? 500
+        )
         const to = overshooting
           ? overshoot(destination, overshootRadius)
           : destination
 
-        await tracePath(path(previous, to, {
-          moveSpeed: options?.moveSpeed
-        }))
+        await tracePath(path(previous, to, options))
 
         if (overshooting) {
           const correction = path(to, { ...dimensions, ...destination }, {
-            spreadOverride: overshootSpread,
-            moveSpeed: options?.moveSpeed
+            ...options,
+            spreadOverride: overshootSpread
           })
 
           await tracePath(correction)
@@ -439,11 +441,7 @@ export const createCursor = (
       }
       await go(0)
 
-      const moveDelay =
-      options?.moveDelay !== undefined && options?.moveDelay >= 0
-        ? options.moveDelay
-        : 0 // No move delay by default
-      await delay(Math.random() * moveDelay)
+      await delay(Math.random() * (options?.moveDelay ?? 0))
     },
     async moveTo (destination: Vector): Promise<void> {
       actions.toggleRandomMove(false)
