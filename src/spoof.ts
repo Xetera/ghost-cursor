@@ -319,12 +319,12 @@ export const createCursor = (
     }
   }
   // Start random mouse movements. Function recursively calls itself
-  const randomMove = async (options?: MoveOptions): Promise<void> => {
+  const randomMove = async (options?: RandomMoveOptions): Promise<void> => {
     const optionsResolved = {
       moveDelay: 2000,
       ...defaultOptions?.randomMove,
       ...options
-    } satisfies MoveOptions
+    } satisfies RandomMoveOptions
 
     try {
       if (!moving) {
@@ -333,7 +333,7 @@ export const createCursor = (
         previous = rand
       }
       await delay(Math.random() * optionsResolved.moveDelay)
-      randomMove().then(
+      randomMove(options).then(
         (_) => {},
         (_) => {}
       ) // fire and forget, recursive function
