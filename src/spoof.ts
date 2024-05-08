@@ -82,8 +82,10 @@ export interface GhostCursor {
 }
 
 // Helper function to wait a specified number of milliseconds
-const delay = async (ms: number): Promise<void> =>
-  await new Promise((resolve) => setTimeout(resolve, ms))
+const delay = async (ms: number): Promise<void> => {
+  if (ms < 1) return
+  return await new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 /**
  * Calculate the amount of time needed to move from (x1, y1) to (x2, y2)
@@ -282,16 +284,10 @@ export const createCursor = (
     try {
       if (!moving) {
         const rand = await getRandomPagePoint(page)
-        await tracePath(path(previous, rand, {
-          moveSpeed: options?.moveSpeed
-        }), true)
+        await tracePath(path(previous, rand, options), true)
         previous = rand
       }
-      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
-        await delay(Math.random() * options.moveDelay)
-      } else {
-        await delay(Math.random() * 2000) // 2s by default
-      }
+      await delay(Math.random() * (options?.moveDelay ?? 2000))
       randomMove().then(
         (_) => {},
         (_) => {}
@@ -318,23 +314,15 @@ export const createCursor = (
       }
 
       try {
-        if (options?.hesitate !== undefined) {
-          await delay(options.hesitate)
-        }
+        await delay(options?.hesitate ?? 0)
         await page.mouse.down()
-        if (options?.waitForClick !== undefined) {
-          await delay(options.waitForClick)
-        }
+        await delay(options?.waitForClick ?? 0)
         await page.mouse.up()
       } catch (error) {
         log('Warning: could not click mouse, error message:', error)
       }
 
-      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
-        await delay(Math.random() * options.moveDelay)
-      } else {
-        await delay(Math.random() * 2000) // 2s by default
-      }
+      await delay(Math.random() * (options?.moveDelay ?? 2000))
 
       actions.toggleRandomMove(true)
     },
@@ -400,14 +388,12 @@ export const createCursor = (
           ? overshoot(destination, overshootRadius)
           : destination
 
-        await tracePath(path(previous, to, {
-          moveSpeed: options?.moveSpeed
-        }))
+        await tracePath(path(previous, to, options))
 
         if (overshooting) {
           const correction = path(to, { ...dimensions, ...destination }, {
-            spreadOverride: overshootSpread,
-            moveSpeed: options?.moveSpeed
+            ...options,
+            spreadOverride: overshootSpread
           })
 
           await tracePath(correction)
