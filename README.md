@@ -75,6 +75,15 @@ hovering over the exact center of the element.
 
 ## Methods
 
+#### `createCursor(page: puppeteer.Page, start?: Vector, performRandomMoves?: boolean, defaultOptions?: DefaultOptions): GhostCursor`
+
+Creates the ghost cursor. Returns cursor action functions.
+
+- **page:** Puppetteer `page`.
+- **start (optional):** Cursor start position. Default is `{ x: 0, y: 0 }`.
+- **performRandomMoves (optional):** Initially perform random movements. Default is `false`.
+- **defaultOptions (optional):** Set custom default options for `click`, `move`, and `randomMove` functions. Default values are described below.
+
 #### `toggleRandomMove(random: boolean): void`
 
 Toggles random mouse movements on or off.
