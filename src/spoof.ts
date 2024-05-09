@@ -348,7 +348,7 @@ export const createCursor = (
       moving = !random
     },
 
-    getLocation():Vector{
+    getLocation (): Vector {
       return previous
     },
 
