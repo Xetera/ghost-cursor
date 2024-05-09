@@ -56,7 +56,7 @@ export interface ClickOptions extends MoveOptions {
    */
   readonly waitForClick?: number
   /**
-   * Delay after performing the click in milliseconds.
+   * @extends moveDelay
    * @default 2000
    */
   readonly moveDelay?: number
@@ -76,7 +76,7 @@ export interface PathOptions {
 
 interface RandomMoveOptions extends Pick<MoveOptions, 'moveDelay' | 'moveSpeed'> {
   /**
-   * Delay after performing the click in milliseconds.
+   * @extends moveDelay
    * @default 2000
    */
   readonly moveDelay?: number
