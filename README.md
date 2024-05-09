@@ -119,6 +119,10 @@ Moves the mouse to the specified destination point.
 - **options (optional):** Additional options for moving.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
 
+#### `getLocation(): Vector`
+
+Get current location of the cursor.
+
 ### Other Utility Methods
 
 #### `installMouseHelper(page: Page): Promise<void>`

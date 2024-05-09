@@ -56,7 +56,7 @@ export interface ClickOptions extends MoveOptions {
    */
   readonly waitForClick?: number
   /**
-   * Delay after performing the click in milliseconds.
+   * @extends moveDelay
    * @default 2000
    */
   readonly moveDelay?: number
@@ -76,7 +76,7 @@ export interface PathOptions {
 
 export interface RandomMoveOptions extends Pick<MoveOptions, 'moveDelay' | 'moveSpeed'> {
   /**
-   * Delay after performing the click in milliseconds.
+   * @extends moveDelay
    * @default 2000
    */
   readonly moveDelay?: number
@@ -95,6 +95,7 @@ export interface GhostCursor {
     options?: MoveOptions
   ) => Promise<void>
   moveTo: (destination: Vector, options?: MoveToOptions) => Promise<void>
+  getLocation: () => Vector
 }
 
 // Helper function to wait a specified number of milliseconds
@@ -354,6 +355,10 @@ export const createCursor = (
       moving = !random
     },
 
+    getLocation (): Vector {
+      return previous
+    },
+
     async click (
       selector?: string | ElementHandle,
       options?: ClickOptions
@@ -366,6 +371,7 @@ export const createCursor = (
         ...options
       } satisfies ClickOptions
 
+      const wasRandom = !moving
       actions.toggleRandomMove(false)
 
       if (selector !== undefined) {
@@ -374,7 +380,6 @@ export const createCursor = (
           // apply moveDelay after click, but not after actual move
           moveDelay: 0
         })
-        actions.toggleRandomMove(false)
       }
 
       try {
@@ -388,7 +393,7 @@ export const createCursor = (
 
       await delay(Math.random() * optionsResolved.moveDelay)
 
-      actions.toggleRandomMove(true)
+      actions.toggleRandomMove(wasRandom)
     },
     async move (
       selector: string | ElementHandle,
@@ -401,6 +406,8 @@ export const createCursor = (
         ...defaultOptions?.move,
         ...options
       } satisfies MoveOptions
+
+      const wasRandom = !moving
 
       const go = async (iteration: number): Promise<void> => {
         if (iteration > (optionsResolved.maxTries)) {
@@ -490,6 +497,8 @@ export const createCursor = (
       }
       await go(0)
 
+      actions.toggleRandomMove(wasRandom)
+
       await delay(Math.random() * optionsResolved.moveDelay)
     },
     async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
@@ -498,9 +507,10 @@ export const createCursor = (
         ...options
       } satisfies MoveToOptions
 
+      const wasRandom = !moving
       actions.toggleRandomMove(false)
       await tracePath(path(previous, destination, optionsResolved))
-      actions.toggleRandomMove(true)
+      actions.toggleRandomMove(wasRandom)
     }
   }
 
