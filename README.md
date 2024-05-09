@@ -117,6 +117,10 @@ Moves the mouse to the specified destination point.
 
 - **destination:** An object with `x` and `y` coordinates representing the target position. For example, `{ x: 500, y: 300 }`.
 
+#### `getLocation(): Vector`
+
+Get current location of the cursor.
+
 ### Other Utility Methods
 
 #### `installMouseHelper(page: Page): Promise<void>`
