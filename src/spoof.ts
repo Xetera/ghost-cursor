@@ -74,13 +74,15 @@ export interface PathOptions {
   readonly moveSpeed?: number
 }
 
-interface RandomMoveOptions extends Pick<MoveOptions, 'moveDelay' | 'moveSpeed'> {
+export interface RandomMoveOptions extends Pick<MoveOptions, 'moveDelay' | 'moveSpeed'> {
   /**
    * @extends moveDelay
    * @default 2000
    */
   readonly moveDelay?: number
 }
+
+export interface MoveToOptions extends PathOptions {}
 
 export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
@@ -92,7 +94,7 @@ export interface GhostCursor {
     selector: string | ElementHandle,
     options?: MoveOptions
   ) => Promise<void>
-  moveTo: (destination: Vector) => Promise<void>
+  moveTo: (destination: Vector, options?: MoveToOptions) => Promise<void>
   getLocation: () => Vector
 }
 
@@ -283,6 +285,11 @@ export const createCursor = (
      * @default MoveOptions
      */
     move?: MoveOptions
+    /**
+     * Default options for the `moveTo` function
+     * @default MoveToOptions
+     */
+    moveTo?: MoveToOptions
     /**
      * Default options for the `click` function
      * @default ClickOptions
@@ -494,10 +501,15 @@ export const createCursor = (
 
       await delay(Math.random() * optionsResolved.moveDelay)
     },
-    async moveTo (destination: Vector): Promise<void> {
+    async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
+      const optionsResolved = {
+        ...defaultOptions?.moveTo,
+        ...options
+      } satisfies MoveToOptions
+
       const wasRandom = !moving
       actions.toggleRandomMove(false)
-      await tracePath(path(previous, destination))
+      await tracePath(path(previous, destination, optionsResolved))
       actions.toggleRandomMove(wasRandom)
     }
   }
