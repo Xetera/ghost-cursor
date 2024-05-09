@@ -82,7 +82,7 @@ Creates the ghost cursor. Returns cursor action functions.
 - **page:** Puppeteer `page`.
 - **start (optional):** Cursor start position. Default is `{ x: 0, y: 0 }`.
 - **performRandomMoves (optional):** Initially perform random movements. Default is `false`.
-- **defaultOptions (optional):** Set custom default options for `click`, `move`, and `randomMove` functions. Default values are described below.
+- **defaultOptions (optional):** Set custom default options for `click`, `move`, `moveTo`, and `randomMove` functions. Default values are described below.
 
 #### `toggleRandomMove(random: boolean): void`
 
@@ -111,11 +111,13 @@ Moves the mouse to the specified selector or element.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
   - `overshootThreshold (number):` Distance from current location to destination that triggers overshoot to occur. (Below this distance, no overshoot will occur). Default is `500`.
 
-#### `moveTo(destination: Vector): Promise<void>`
+#### `moveTo(destination: Vector, options?: MoveToOptions): Promise<void>`
 
 Moves the mouse to the specified destination point.
 
 - **destination:** An object with `x` and `y` coordinates representing the target position. For example, `{ x: 500, y: 300 }`.
+- **options (optional):** Additional options for moving.
+  - `moveSpeed (number):` Speed of mouse movement. Default is random.
 
 ### Other Utility Methods
 
