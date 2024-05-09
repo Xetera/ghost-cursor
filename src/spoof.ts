@@ -93,6 +93,7 @@ export interface GhostCursor {
     options?: MoveOptions
   ) => Promise<void>
   moveTo: (destination: Vector) => Promise<void>
+  getLocation: () => Vector
 }
 
 // Helper function to wait a specified number of milliseconds
@@ -345,6 +346,10 @@ export const createCursor = (
   const actions: GhostCursor = {
     toggleRandomMove (random: boolean): void {
       moving = !random
+    },
+
+    getLocation():Vector{
+      return previous
     },
 
     async click (
