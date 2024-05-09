@@ -27,7 +27,7 @@ export interface MoveOptions extends BoxOptions, Pick<PathOptions, 'moveSpeed'> 
    */
   readonly waitForSelector?: number
   /**
-   * Delay after moving the mouse in milliseconds.
+   * Delay after moving the mouse in milliseconds. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
    * @default 0
    */
   readonly moveDelay?: number

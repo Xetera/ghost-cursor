@@ -96,7 +96,7 @@ Simulates a mouse click at the specified selector or element.
 - **options (optional):** Additional options for clicking.
   - `hesitate (number):` Delay before initiating the click action in milliseconds. Default is `0`.
   - `waitForClick (number):` Delay between mousedown and mouseup in milliseconds. Default is `0`.
-  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `2000`.
+  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `2000`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
   - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
 
 #### `move(selector: string | ElementHandle, options?: MoveOptions): Promise<void>`
@@ -107,7 +107,7 @@ Moves the mouse to the specified selector or element.
 - **options (optional):** Additional options for moving.
   - `paddingPercentage (number):` Percentage of padding to be added around the element. Default is `0`.
   - `waitForSelector (number):` Time to wait for the selector to appear in milliseconds. Default is to not wait for selector.
-  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`.
+  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
   - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
   - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
@@ -120,7 +120,7 @@ Moves the mouse to the specified destination point.
 - **destination:** An object with `x` and `y` coordinates representing the target position. For example, `{ x: 500, y: 300 }`.
 - **options (optional):** Additional options for moving.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
-  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`.
+  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
   - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
 
 #### `getLocation(): Vector`
