@@ -359,6 +359,7 @@ export const createCursor = (
         ...options
       } satisfies ClickOptions
 
+      const wasRandom = !moving
       actions.toggleRandomMove(false)
 
       if (selector !== undefined) {
@@ -367,7 +368,6 @@ export const createCursor = (
           // apply moveDelay after click, but not after actual move
           moveDelay: 0
         })
-        actions.toggleRandomMove(false)
       }
 
       try {
@@ -381,7 +381,7 @@ export const createCursor = (
 
       await delay(Math.random() * optionsResolved.moveDelay)
 
-      actions.toggleRandomMove(true)
+      actions.toggleRandomMove(wasRandom)
     },
     async move (
       selector: string | ElementHandle,
@@ -394,6 +394,8 @@ export const createCursor = (
         ...defaultOptions?.move,
         ...options
       } satisfies MoveOptions
+
+      const wasRandom = !moving
 
       const go = async (iteration: number): Promise<void> => {
         if (iteration > (optionsResolved.maxTries)) {
@@ -483,12 +485,15 @@ export const createCursor = (
       }
       await go(0)
 
+      actions.toggleRandomMove(wasRandom)
+
       await delay(Math.random() * optionsResolved.moveDelay)
     },
     async moveTo (destination: Vector): Promise<void> {
+      const wasRandom = !moving
       actions.toggleRandomMove(false)
       await tracePath(path(previous, destination))
-      actions.toggleRandomMove(true)
+      actions.toggleRandomMove(wasRandom)
     }
   }
 
