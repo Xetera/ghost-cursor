@@ -27,10 +27,15 @@ export interface MoveOptions extends BoxOptions, Pick<PathOptions, 'moveSpeed'> 
    */
   readonly waitForSelector?: number
   /**
-   * Delay after moving the mouse in milliseconds.
+   * Delay after moving the mouse in milliseconds. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
    * @default 0
    */
   readonly moveDelay?: number
+  /**
+   * Randomize delay between actions from `0` to `moveDelay`. See `moveDelay` docs.
+   * @default true
+   */
+  readonly randomizeMoveDelay?: boolean
   /**
    * Maximum number of attempts to mouse-over the element.
    * @default 10
@@ -56,7 +61,6 @@ export interface ClickOptions extends MoveOptions {
    */
   readonly waitForClick?: number
   /**
-   * @extends moveDelay
    * @default 2000
    */
   readonly moveDelay?: number
@@ -74,15 +78,19 @@ export interface PathOptions {
   readonly moveSpeed?: number
 }
 
-export interface RandomMoveOptions extends Pick<MoveOptions, 'moveDelay' | 'moveSpeed'> {
+export interface RandomMoveOptions extends Pick<MoveOptions, 'moveDelay' | 'randomizeMoveDelay' | 'moveSpeed'> {
   /**
-   * @extends moveDelay
    * @default 2000
    */
   readonly moveDelay?: number
 }
 
-export interface MoveToOptions extends PathOptions {}
+export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay' | 'randomizeMoveDelay'> {
+  /**
+   * @default 0
+   */
+  readonly moveDelay?: number
+}
 
 export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
@@ -330,6 +338,7 @@ export const createCursor = (
   const randomMove = async (options?: RandomMoveOptions): Promise<void> => {
     const optionsResolved = {
       moveDelay: 2000,
+      randomizeMoveDelay: true,
       ...defaultOptions?.randomMove,
       ...options
     } satisfies RandomMoveOptions
@@ -340,7 +349,7 @@ export const createCursor = (
         await tracePath(path(previous, rand, optionsResolved), true)
         previous = rand
       }
-      await delay(Math.random() * optionsResolved.moveDelay)
+      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
       randomMove(options).then(
         (_) => {},
         (_) => {}
@@ -367,6 +376,7 @@ export const createCursor = (
         moveDelay: 2000,
         hesitate: 0,
         waitForClick: 0,
+        randomizeMoveDelay: true,
         ...defaultOptions?.click,
         ...options
       } satisfies ClickOptions
@@ -391,10 +401,11 @@ export const createCursor = (
         log('Warning: could not click mouse, error message:', error)
       }
 
-      await delay(Math.random() * optionsResolved.moveDelay)
+      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
 
       actions.toggleRandomMove(wasRandom)
     },
+
     async move (
       selector: string | ElementHandle,
       options?: MoveOptions
@@ -403,6 +414,7 @@ export const createCursor = (
         moveDelay: 0,
         maxTries: 10,
         overshootThreshold: 500,
+        randomizeMoveDelay: true,
         ...defaultOptions?.move,
         ...options
       } satisfies MoveOptions
@@ -499,10 +511,13 @@ export const createCursor = (
 
       actions.toggleRandomMove(wasRandom)
 
-      await delay(Math.random() * optionsResolved.moveDelay)
+      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
+
     async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
       const optionsResolved = {
+        moveDelay: 0,
+        randomizeMoveDelay: true,
         ...defaultOptions?.moveTo,
         ...options
       } satisfies MoveToOptions
@@ -511,6 +526,8 @@ export const createCursor = (
       actions.toggleRandomMove(false)
       await tracePath(path(previous, destination, optionsResolved))
       actions.toggleRandomMove(wasRandom)
+
+      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     }
   }
 
