@@ -76,12 +76,8 @@ export const bezierCurve = (
   const max = 200
   const vec = direction(start, finish)
   const length = magnitude(vec)
-  const spread = clamp(length, min, max)
-  const anchors = generateBezierAnchors(
-    start,
-    finish,
-    overrideSpread ?? spread
-  )
+  const spread = overrideSpread ?? clamp(length, min, max)
+  const anchors = generateBezierAnchors(start, finish, spread)
   return new Bezier(start, ...anchors, finish)
 }
 

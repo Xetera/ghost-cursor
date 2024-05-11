@@ -97,6 +97,15 @@ hovering over the exact center of the element.
 
 ## Methods
 
+#### `createCursor(page: puppeteer.Page, start?: Vector, performRandomMoves?: boolean, defaultOptions?: DefaultOptions): GhostCursor`
+
+Creates the ghost cursor. Returns cursor action functions.
+
+- **page:** Puppeteer `page`.
+- **start (optional):** Cursor start position. Default is `{ x: 0, y: 0 }`.
+- **performRandomMoves (optional):** Initially perform random movements. Default is `false`.
+- **defaultOptions (optional):** Set custom default options for `click`, `move`, `moveTo`, and `randomMove` functions. Default values are described below.
+
 #### `toggleRandomMove(random: boolean): void`
 
 Toggles random mouse movements on or off.
@@ -107,9 +116,10 @@ Simulates a mouse click at the specified selector or element.
 
 - **selector (optional):** CSS selector or ElementHandle to identify the target element.
 - **options (optional):** Additional options for clicking.
-  - `hesitate (number):` Delay before initiating the click action in milliseconds.
-  - `waitForClick (number):` Delay after pressing the mouse button in milliseconds.
-  - `moveDelay (number):` Delay after moving the mouse in milliseconds.
+  - `hesitate (number):` Delay before initiating the click action in milliseconds. Default is `0`.
+  - `waitForClick (number):` Delay between mousedown and mouseup in milliseconds. Default is `0`.
+  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `2000`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
+  - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
 
 #### `move(selector: string | ElementHandle, options?: MoveOptions): Promise<void>`
 
@@ -118,16 +128,26 @@ Moves the mouse to the specified selector or element.
 - **selector:** CSS selector or ElementHandle to identify the target element.
 - **options (optional):** Additional options for moving.
   - `paddingPercentage (number):` Percentage of padding to be added around the element. Default is `0`.
-  - `waitForSelector (number):` Time to wait for the selector to appear in milliseconds.
-  - `moveDelay (number):` Delay after moving the mouse in milliseconds.
+  - `waitForSelector (number):` Time to wait for the selector to appear in milliseconds. Default is to not wait for selector.
+  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
+  - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
   - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
-  - `moveSpeed (number):` Speed of mouse movement.
+  - `moveSpeed (number):` Speed of mouse movement. Default is random.
+  - `overshootThreshold (number):` Distance from current location to destination that triggers overshoot to occur. (Below this distance, no overshoot will occur). Default is `500`.
 
-#### `moveTo(destination: Vector): Promise<void>`
+#### `moveTo(destination: Vector, options?: MoveToOptions): Promise<void>`
 
 Moves the mouse to the specified destination point.
 
 - **destination:** An object with `x` and `y` coordinates representing the target position. For example, `{ x: 500, y: 300 }`.
+- **options (optional):** Additional options for moving.
+  - `moveSpeed (number):` Speed of mouse movement. Default is random.
+  - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
+  - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
+
+#### `getLocation(): Vector`
+
+Get current location of the cursor.
 
 ### Other Utility Methods
 
@@ -147,7 +167,7 @@ Generates a set of points for mouse movement between two coordinates.
 - **target:** Ending point of the movement.
 - **optionsOrSpread (optional):** Additional options for generating the path.
   - `spreadOverride (number):` Override the spread of the generated path.
-  - `moveSpeed (number):` Speed of mouse movement.
+  - `moveSpeed (number):` Speed of mouse movement. Default is random.
   - `showTimestamps (boolean):` Generate timestamps for each point based on the trapezoidal rule.
 
 ## How does it work

@@ -15,25 +15,84 @@ export { default as installMouseHelper } from './mouse-helper'
 const log = debug('ghost-cursor')
 
 export interface BoxOptions {
+  /**
+   * Percentage of padding to be added around the element.
+   * @default 0
+   */
   readonly paddingPercentage?: number
 }
 
-export interface MoveOptions extends BoxOptions {
+export interface MoveOptions extends BoxOptions, Pick<PathOptions, 'moveSpeed'> {
+  /**
+   * Time to wait for the selector to appear in milliseconds.
+   * Default is to not wait for selector.
+   */
   readonly waitForSelector?: number
+  /**
+   * Delay after moving the mouse in milliseconds. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
+   * @default 0
+   */
   readonly moveDelay?: number
+  /**
+   * Randomize delay between actions from `0` to `moveDelay`. See `moveDelay` docs.
+   * @default true
+   */
+  readonly randomizeMoveDelay?: boolean
+  /**
+   * Maximum number of attempts to mouse-over the element.
+   * @default 10
+   */
   readonly maxTries?: number
-  readonly moveSpeed?: number
+  /**
+   * Distance from current location to destination that triggers overshoot to
+   * occur. (Below this distance, no overshoot will occur).
+   * @default 500
+   */
+  readonly overshootThreshold?: number
 }
 
 export interface ClickOptions extends MoveOptions {
+  /**
+   * Delay before initiating the click action in milliseconds.
+   * @default 0
+   */
   readonly hesitate?: number
+  /**
+   * Delay between mousedown and mouseup in milliseconds.
+   * @default 0
+   */
   readonly waitForClick?: number
+  /**
+   * @default 2000
+   */
+  readonly moveDelay?: number
 }
 
 export interface PathOptions {
+  /**
+   * Override the spread of the generated path.
+   */
   readonly spreadOverride?: number
+  /**
+   * Speed of mouse movement.
+   * Default is random.
+   */
   readonly moveSpeed?: number
   readonly showTimestamps?: boolean
+}
+
+export interface RandomMoveOptions extends Pick<MoveOptions, 'moveDelay' | 'randomizeMoveDelay' | 'moveSpeed'> {
+  /**
+   * @default 2000
+   */
+  readonly moveDelay?: number
+}
+
+export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay' | 'randomizeMoveDelay'> {
+  /**
+   * @default 0
+   */
+  readonly moveDelay?: number
 }
 
 export interface GhostCursor {
@@ -46,12 +105,15 @@ export interface GhostCursor {
     selector: string | ElementHandle,
     options?: MoveOptions
   ) => Promise<void>
-  moveTo: (destination: Vector) => Promise<void>
+  moveTo: (destination: Vector, options?: MoveToOptions) => Promise<void>
+  getLocation: () => Vector
 }
 
 // Helper function to wait a specified number of milliseconds
-const delay = async (ms: number): Promise<void> =>
-  await new Promise((resolve) => setTimeout(resolve, ms))
+const delay = async (ms: number): Promise<void> => {
+  if (ms < 1) return
+  return await new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 /**
  * Calculate the amount of time needed to move from (x1, y1) to (x2, y2)
@@ -224,9 +286,8 @@ const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVect
   return timedVectors
 }
 
-const overshootThreshold = 500
-const shouldOvershoot = (a: Vector, b: Vector): boolean =>
-  magnitude(direction(a, b)) > overshootThreshold
+const shouldOvershoot = (a: Vector, b: Vector, threshold: number): boolean =>
+  magnitude(direction(a, b)) > threshold
 
 const intersectsElement = (vec: Vector, box: BoundingBox): boolean => {
   return (
@@ -253,8 +314,39 @@ const boundingBoxWithFallback = async (
 
 export const createCursor = (
   page: Page,
+  /**
+   * Cursor start position.
+   * @default { x: 0, y: 0 }
+   */
   start: Vector = origin,
-  performRandomMoves: boolean = false
+  /**
+   * Initially perform random movements.
+   * If `move`,`click`, etc. is performed, these random movements end.
+   * @default false
+   */
+  performRandomMoves: boolean = false,
+  defaultOptions: {
+    /**
+     * Default options for the `randomMove` function that occurs when `performRandomMoves=true`
+     * @default RandomMoveOptions
+     */
+    randomMove?: RandomMoveOptions
+    /**
+     * Default options for the `move` function
+     * @default MoveOptions
+     */
+    move?: MoveOptions
+    /**
+     * Default options for the `moveTo` function
+     * @default MoveToOptions
+     */
+    moveTo?: MoveToOptions
+    /**
+     * Default options for the `click` function
+     * @default ClickOptions
+     */
+    click?: ClickOptions
+  } = {}
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const overshootSpread = 10
@@ -286,21 +378,22 @@ export const createCursor = (
     }
   }
   // Start random mouse movements. Function recursively calls itself
-  const randomMove = async (options?: MoveOptions): Promise<void> => {
+  const randomMove = async (options?: RandomMoveOptions): Promise<void> => {
+    const optionsResolved = {
+      moveDelay: 2000,
+      randomizeMoveDelay: true,
+      ...defaultOptions?.randomMove,
+      ...options
+    } satisfies RandomMoveOptions
+
     try {
       if (!moving) {
         const rand = await getRandomPagePoint(page)
-        await tracePath(path(previous, rand, {
-          moveSpeed: options?.moveSpeed
-        }), true)
+        await tracePath(path(previous, rand, optionsResolved), true)
         previous = rand
       }
-      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
-        await delay(Math.random() * options.moveDelay)
-      } else {
-        await delay(Math.random() * 2000) // 2s by default
-      }
-      randomMove().then(
+      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+      randomMove(options).then(
         (_) => {},
         (_) => {}
       ) // fire and forget, recursive function
@@ -314,44 +407,65 @@ export const createCursor = (
       moving = !random
     },
 
+    getLocation (): Vector {
+      return previous
+    },
+
     async click (
       selector?: string | ElementHandle,
       options?: ClickOptions
     ): Promise<void> {
+      const optionsResolved = {
+        moveDelay: 2000,
+        hesitate: 0,
+        waitForClick: 0,
+        randomizeMoveDelay: true,
+        ...defaultOptions?.click,
+        ...options
+      } satisfies ClickOptions
+
+      const wasRandom = !moving
       actions.toggleRandomMove(false)
 
       if (selector !== undefined) {
-        await actions.move(selector, options)
-        actions.toggleRandomMove(false)
+        await actions.move(selector, {
+          ...optionsResolved,
+          // apply moveDelay after click, but not after actual move
+          moveDelay: 0
+        })
       }
 
       try {
-        if (options?.hesitate !== undefined) {
-          await delay(options.hesitate)
-        }
+        await delay(optionsResolved.hesitate)
         await page.mouse.down()
-        if (options?.waitForClick !== undefined) {
-          await delay(options.waitForClick)
-        }
+        await delay(optionsResolved.waitForClick)
         await page.mouse.up()
       } catch (error) {
         log('Warning: could not click mouse, error message:', error)
       }
 
-      if (options?.moveDelay !== undefined && options.moveDelay >= 0) {
-        await delay(Math.random() * options.moveDelay)
-      } else {
-        await delay(Math.random() * 2000) // 2s by default
-      }
+      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
 
-      actions.toggleRandomMove(true)
+      actions.toggleRandomMove(wasRandom)
     },
+
     async move (
       selector: string | ElementHandle,
       options?: MoveOptions
     ): Promise<void> {
+      const optionsResolved = {
+        moveDelay: 0,
+        maxTries: 10,
+        overshootThreshold: 500,
+        randomizeMoveDelay: true,
+        ...defaultOptions?.move,
+        ...options
+      } satisfies MoveOptions
+
+      const wasRandom = !moving
+
       const go = async (iteration: number): Promise<void> => {
-        if (iteration > (options?.maxTries ?? 10)) {
+        if (iteration > (optionsResolved.maxTries)) {
           throw Error('Could not mouse-over element within enough tries')
         }
 
@@ -360,24 +474,24 @@ export const createCursor = (
         if (typeof selector === 'string') {
           if (selector.startsWith('//') || selector.startsWith('(//')) {
             selector = `xpath/.${selector}`
-            if (options?.waitForSelector !== undefined) {
+            if (optionsResolved.waitForSelector !== undefined) {
               await page.waitForSelector(selector, {
-                timeout: options.waitForSelector
+                timeout: optionsResolved.waitForSelector
               })
             }
             const [handle] = await page.$$(selector)
             elem = handle.asElement() as ElementHandle<Element>
           } else {
-            if (options?.waitForSelector !== undefined) {
+            if (optionsResolved.waitForSelector !== undefined) {
               await page.waitForSelector(selector, {
-                timeout: options.waitForSelector
+                timeout: optionsResolved.waitForSelector
               })
             }
             elem = await page.$(selector)
           }
           if (elem === null) {
             throw new Error(
-              `Could not find element with selector "${selector}", make sure you're waiting for the elements with "puppeteer.waitForSelector"`
+              `Could not find element with selector "${selector}", make sure you're waiting for the elements by specifying "waitForSelector"`
             )
           }
         } else {
@@ -401,21 +515,23 @@ export const createCursor = (
         }
         const box = await boundingBoxWithFallback(page, elem)
         const { height, width } = box
-        const destination = getRandomBoxPoint(box, options)
+        const destination = getRandomBoxPoint(box, optionsResolved)
         const dimensions = { height, width }
-        const overshooting = shouldOvershoot(previous, destination)
+        const overshooting = shouldOvershoot(
+          previous,
+          destination,
+          optionsResolved.overshootThreshold
+        )
         const to = overshooting
           ? overshoot(destination, overshootRadius)
           : destination
 
-        await tracePath(path(previous, to, {
-          moveSpeed: options?.moveSpeed
-        }))
+        await tracePath(path(previous, to, optionsResolved))
 
         if (overshooting) {
           const correction = path(to, { ...dimensions, ...destination }, {
-            spreadOverride: overshootSpread,
-            moveSpeed: options?.moveSpeed
+            ...optionsResolved,
+            spreadOverride: overshootSpread
           })
 
           await tracePath(correction)
@@ -434,12 +550,27 @@ export const createCursor = (
           return await go(iteration + 1)
         }
       }
-      return await go(0)
+      await go(0)
+
+      actions.toggleRandomMove(wasRandom)
+
+      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
-    async moveTo (destination: Vector): Promise<void> {
+
+    async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
+      const optionsResolved = {
+        moveDelay: 0,
+        randomizeMoveDelay: true,
+        ...defaultOptions?.moveTo,
+        ...options
+      } satisfies MoveToOptions
+
+      const wasRandom = !moving
       actions.toggleRandomMove(false)
-      await tracePath(path(previous, destination))
-      actions.toggleRandomMove(true)
+      await tracePath(path(previous, destination, optionsResolved))
+      actions.toggleRandomMove(wasRandom)
+
+      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     }
   }
 
