@@ -66,14 +66,17 @@ export const overshoot = (coordinate: Vector, radius: number): Vector => {
 export const bezierCurve = (
   start: Vector,
   finish: Vector,
-  overrideSpread?: number
+  /**
+   * Default is length from start to finish, clamped to 2 < x < 200
+   */
+  spreadOverride?: number
 ): Bezier => {
   // could be played around with
-  const min = 2
-  const max = 200
+  const MIN_LENGTH = 2
+  const MAX_LENGTH = 200
   const vec = direction(start, finish)
   const length = magnitude(vec)
-  const spread = overrideSpread ?? clamp(length, min, max)
+  const spread = spreadOverride ?? clamp(length, MIN_LENGTH, MAX_LENGTH)
   const anchors = generateBezierAnchors(start, finish, spread)
   return new Bezier(start, ...anchors, finish)
 }

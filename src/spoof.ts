@@ -109,7 +109,7 @@ export interface GhostCursor {
   getLocation: () => Vector
 }
 
-// Helper function to wait a specified number of milliseconds
+/** Helper function to wait a specified number of milliseconds  */
 const delay = async (ms: number): Promise<void> => {
   if (ms < 1) return
   return await new Promise((resolve) => setTimeout(resolve, ms))
@@ -127,7 +127,7 @@ const fitts = (distance: number, width: number): number => {
   return a + b * id
 }
 
-// Get a random point on a box
+/** Get a random point on a box */
 const getRandomBoxPoint = (
   { x, y, width, height }: BoundingBox,
   options?: BoxOptions
@@ -150,10 +150,10 @@ const getRandomBoxPoint = (
   }
 }
 
-// The function signature to access the internal CDP client changed in puppeteer 14.4.1
+/** The function signature to access the internal CDP client changed in puppeteer 14.4.1 */
 const getCDPClient = (page: any): CDPSession => typeof page._client === 'function' ? page._client() : page._client
 
-// Get a random point on a browser window
+/** Get a random point on a browser window */
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = (page.target() as any)._targetId
   const window = await getCDPClient(page).send(
@@ -168,7 +168,7 @@ export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   })
 }
 
-// Using this method to get correct position of Inline elements (elements like <a>)
+/** Using this method to get correct position of Inline elements (elements like `<a>`) */
 const getElementBox = async (
   page: Page,
   element: ElementHandle,
@@ -223,14 +223,14 @@ export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?
   const spreadOverride = typeof optionsOrSpread === 'number' ? optionsOrSpread : optionsOrSpread?.spreadOverride
   const moveSpeed = typeof optionsOrSpread === 'object' && optionsOrSpread.moveSpeed
 
-  const defaultWidth = 100
-  const minSteps = 25
-  const width = 'width' in end && end.width !== 0 ? end.width : defaultWidth
+  const DEFAULT_WIDTH = 100
+  const MIN_STEPS = 25
+  const width = 'width' in end && end.width !== 0 ? end.width : DEFAULT_WIDTH
   const curve = bezierCurve(start, end, spreadOverride)
   const length = curve.length() * 0.8
 
   const speed = typeof moveSpeed === 'number' ? (25 / moveSpeed) : Math.random()
-  const baseTime = speed * minSteps
+  const baseTime = speed * MIN_STEPS
   const steps = Math.ceil((Math.log2(fitts(length, width) + 1) + baseTime) * 3)
   const re = curve.getLUT(steps)
   return clampPositive(re)
@@ -304,8 +304,8 @@ export const createCursor = (
   } = {}
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
-  const overshootSpread = 10
-  const overshootRadius = 120
+  const OVERSHOOT_SPREAD = 10
+  const OVERSHOOT_RADIUS = 120
   let previous: Vector = start
 
   // Initial state: mouse is not moving
@@ -478,7 +478,7 @@ export const createCursor = (
           optionsResolved.overshootThreshold
         )
         const to = overshooting
-          ? overshoot(destination, overshootRadius)
+          ? overshoot(destination, OVERSHOOT_RADIUS)
           : destination
 
         await tracePath(path(previous, to, optionsResolved))
@@ -486,7 +486,7 @@ export const createCursor = (
         if (overshooting) {
           const correction = path(to, { ...dimensions, ...destination }, {
             ...optionsResolved,
-            spreadOverride: overshootSpread
+            spreadOverride: OVERSHOOT_SPREAD
           })
 
           await tracePath(correction)

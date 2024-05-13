@@ -1,8 +1,9 @@
-// @ts-nocheck
 import type { Page } from 'puppeteer'
 
-// This injects a box into the page that moves with the mouse;
-// Useful for debugging
+/**
+ * This injects a box into the page that moves with the mouse.
+ * Useful for debugging.
+ */
 async function installMouseHelper (page: Page): Promise<void> {
   await page.evaluateOnNewDocument(() => {
     const attachListener = (): void => {
@@ -96,20 +97,18 @@ async function installMouseHelper (page: Page): Promise<void> {
         },
         true
       )
-      /* eslint-disable */
-      function updateButtons(buttons) {
+      function updateButtons (buttons): void {
         for (let i = 0; i < 5; i++) {
-          // @ts-ignore
-          box.classList.toggle("button-" + String(i), buttons & (1 << i));
+          box.classList.toggle('button-' + String(i), Boolean(buttons & (1 << i)))
         }
       }
-    };
-    if (document.readyState !== "loading") {
-      attachListener();
-    } else {
-      window.addEventListener("DOMContentLoaded", attachListener, false);
     }
-  });
+    if (document.readyState !== 'loading') {
+      attachListener()
+    } else {
+      window.addEventListener('DOMContentLoaded', attachListener, false)
+    }
+  })
 }
 
-export default installMouseHelper;
+export default installMouseHelper
