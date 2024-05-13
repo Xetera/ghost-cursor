@@ -1,4 +1,4 @@
-import { ElementHandle, Page, BoundingBox, CDPSession } from 'puppeteer'
+import { ElementHandle, Page, BoundingBox, CDPSession, Protocol } from 'puppeteer'
 import debug from 'debug'
 import {
   Vector,
