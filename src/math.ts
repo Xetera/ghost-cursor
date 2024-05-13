@@ -72,11 +72,11 @@ export const bezierCurve = (
   spreadOverride?: number
 ): Bezier => {
   // could be played around with
-  const MIN_LENGTH = 2
-  const MAX_LENGTH = 200
+  const MIN_SPREAD = 2
+  const MAX_SPREAD = 200
   const vec = direction(start, finish)
   const length = magnitude(vec)
-  const spread = spreadOverride ?? clamp(length, MIN_LENGTH, MAX_LENGTH)
+  const spread = spreadOverride ?? clamp(length, MIN_SPREAD, MAX_SPREAD)
   const anchors = generateBezierAnchors(start, finish, spread)
   return new Bezier(start, ...anchors, finish)
 }
