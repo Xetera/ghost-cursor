@@ -358,16 +358,28 @@ export const createCursor = (
 
   // Move the mouse over a number of vectors
   const tracePath = async (
-    vectors: Iterable<Vector>,
+    vectors: Iterable<Vector | TimedVector>,
     abortOnMove: boolean = false
   ): Promise<void> => {
+    const cdpClient = getCDPClient(page)
+
     for (const v of vectors) {
       try {
         // In case this is called from random mouse movements and the users wants to move the mouse, abort
         if (abortOnMove && moving) {
           return
         }
-        await page.mouse.move(v.x, v.y)
+
+        const dispatchParams: Protocol.Input.DispatchMouseEventRequest = {
+          type: 'mouseMoved',
+          x: v.x,
+          y: v.y
+        }
+
+        if ('timestamp' in v) dispatchParams.timestamp = v.timestamp
+
+        await cdpClient.send('Input.dispatchMouseEvent', dispatchParams)
+
         previous = v
       } catch (error) {
         // Exit function if the browser is no longer connected
