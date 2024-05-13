@@ -230,8 +230,9 @@ export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?
   const curve = bezierCurve(start, end, optionsResolved.spreadOverride)
   const length = curve.length() * 0.8
 
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-  const speed = optionsResolved.moveSpeed ? (25 / optionsResolved.moveSpeed) : Math.random()
+  const speed = optionsResolved.moveSpeed !== undefined && optionsResolved.moveSpeed > 0
+    ? (25 / optionsResolved.moveSpeed)
+    : Math.random()
   const baseTime = speed * MIN_STEPS
   const steps = Math.ceil((Math.log2(fitts(length, width) + 1) + baseTime) * 3)
   const re = curve.getLUT(steps)
