@@ -1,7 +1,7 @@
-import { ElementHandle, Page, BoundingBox, CDPSession } from 'puppeteer'
+import type { ElementHandle, Page, BoundingBox, CDPSession } from 'puppeteer'
 import debug from 'debug'
 import {
-  Vector,
+  type Vector,
   bezierCurve,
   direction,
   magnitude,
