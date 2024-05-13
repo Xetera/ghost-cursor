@@ -236,15 +236,10 @@ export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?
   return clampPositive(re)
 }
 
-const clampPositive = (vectors: Vector[]): Vector[] => {
-  const clamp0 = (elem: number): number => Math.max(0, elem)
-  return vectors.map((vector) => {
-    return {
-      x: clamp0(vector.x),
-      y: clamp0(vector.y)
-    }
-  })
-}
+const clampPositive = (vectors: Vector[]): Vector[] => vectors.map((vector) => ({
+  x: Math.max(0, vector.x),
+  y: Math.max(0, vector.y)
+}))
 
 const shouldOvershoot = (a: Vector, b: Vector, threshold: number): boolean =>
   magnitude(direction(a, b)) > threshold
