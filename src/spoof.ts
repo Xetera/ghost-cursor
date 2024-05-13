@@ -224,15 +224,15 @@ export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?
     ? { spreadOverride: optionsOrSpread }
     : { ...optionsOrSpread }
 
-  const { spreadOverride, moveSpeed } = optionsResolved
-
   const defaultWidth = 100
   const minSteps = 25
   const width = 'width' in end && end.width !== 0 ? end.width : defaultWidth
-  const curve = bezierCurve(start, end, spreadOverride)
+  const curve = bezierCurve(start, end, optionsResolved.spreadOverride)
   const length = curve.length() * 0.8
 
-  const speed = moveSpeed !== undefined && moveSpeed > 0 ? (25 / moveSpeed) : Math.random()
+  const speed = optionsResolved.moveSpeed !== undefined && optionsResolved.moveSpeed > 0
+    ? (25 / optionsResolved.moveSpeed)
+    : Math.random()
   const baseTime = speed * minSteps
   const steps = Math.ceil((Math.log2(fitts(length, width) + 1) + baseTime) * 3)
   const re = curve.getLUT(steps)
