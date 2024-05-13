@@ -14,7 +14,10 @@ const log = debug('ghost-cursor')
 
 export interface BoxOptions {
   /**
-   * Percentage of padding to be added around the element.
+   * Percentage of padding to be added inside the element.
+   * Example:
+   * - `0` = may be anywhere within the element.
+   * - `100` = will always be center of element.
    * @default 0
    */
   readonly paddingPercentage?: number
@@ -135,7 +138,7 @@ const getRandomBoxPoint = (
   if (
     options?.paddingPercentage !== undefined &&
     options?.paddingPercentage > 0 &&
-    options?.paddingPercentage < 100
+    options?.paddingPercentage <= 100
   ) {
     paddingWidth = (width * options.paddingPercentage) / 100
     paddingHeight = (height * options.paddingPercentage) / 100
