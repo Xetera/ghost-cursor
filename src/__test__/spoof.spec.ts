@@ -1,5 +1,5 @@
-import { Page } from 'puppeteer'
-import { createCursor, GhostCursor } from '../spoof'
+import type { Page } from 'puppeteer'
+import { type ClickOptions, createCursor, GhostCursor } from '../spoof'
 import { join } from 'path'
 import { promises as fs } from 'fs'
 import installMouseHelper from '../mouse-helper'
@@ -7,6 +7,13 @@ import installMouseHelper from '../mouse-helper'
 declare const page: Page
 
 let cursor: GhostCursor
+
+const cursorDefaultOptions = {
+  moveDelay: 0,
+  moveSpeed: 99,
+  hesitate: 0,
+  waitForClick: 0
+} as const satisfies ClickOptions
 
 describe('Mouse movements', () => {
   beforeAll(async () => {
@@ -17,13 +24,19 @@ describe('Mouse movements', () => {
     })
   })
 
+  beforeEach(() => {
+    cursor = createCursor(page, undefined, undefined, {
+      move: cursorDefaultOptions,
+      click: cursorDefaultOptions,
+      moveTo: cursorDefaultOptions
+    })
+  })
+
   it('Should click on the element without throwing an error (CSS selector)', async () => {
-    cursor = createCursor(page)
     await cursor.click('#box')
   })
 
   it('Should click on the element without throwing an error (XPath selector)', async () => {
-    cursor = createCursor(page)
     await cursor.click('//*[@id="box"]')
   })
 })
