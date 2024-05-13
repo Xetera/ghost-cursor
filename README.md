@@ -105,7 +105,7 @@ Moves the mouse to the specified selector or element.
 
 - **selector:** CSS selector or ElementHandle to identify the target element.
 - **options (optional):** Additional options for moving.
-  - `paddingPercentage (number):` Percentage of padding to be added around the element. Default is `0`.
+  - `paddingPercentage (number):` Percentage of padding to be added inside the element. Default is `0` (may move to anywhere within the element). `100` will always move to center of element.
   - `waitForSelector (number):` Time to wait for the selector to appear in milliseconds. Default is to not wait for selector.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
   - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
