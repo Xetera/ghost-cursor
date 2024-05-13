@@ -220,8 +220,11 @@ const getElementBox = async (
 export function path (point: Vector, target: Vector, optionsOrSpread?: number | PathOptions)
 export function path (point: Vector, target: BoundingBox, optionsOrSpread?: number | PathOptions)
 export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?: number | PathOptions): Vector[] {
-  const spreadOverride = typeof optionsOrSpread === 'number' ? optionsOrSpread : optionsOrSpread?.spreadOverride
-  const moveSpeed = typeof optionsOrSpread === 'object' && optionsOrSpread.moveSpeed
+  const optionsResolved: PathOptions = typeof optionsOrSpread === 'number'
+    ? { spreadOverride: optionsOrSpread }
+    : { ...optionsOrSpread }
+    
+  const { spreadOverride, moveSpeed } = optionsResolved
 
   const defaultWidth = 100
   const minSteps = 25
@@ -229,7 +232,7 @@ export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?
   const curve = bezierCurve(start, end, spreadOverride)
   const length = curve.length() * 0.8
 
-  const speed = typeof moveSpeed === 'number' ? (25 / moveSpeed) : Math.random()
+  const speed = moveSpeed !== undefined && moveSpeed > 0 ? (25 / moveSpeed) : Math.random()
   const baseTime = speed * minSteps
   const steps = Math.ceil((Math.log2(fitts(length, width) + 1) + baseTime) * 3)
   const re = curve.getLUT(steps)
