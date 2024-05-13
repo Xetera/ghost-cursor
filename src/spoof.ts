@@ -223,7 +223,7 @@ export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?
   const optionsResolved: PathOptions = typeof optionsOrSpread === 'number'
     ? { spreadOverride: optionsOrSpread }
     : { ...optionsOrSpread }
-    
+
   const { spreadOverride, moveSpeed } = optionsResolved
 
   const defaultWidth = 100
