@@ -7,7 +7,7 @@
   "types": "lib/spoof.d.ts",
   "scripts": {
     "prepare": "husky && yarn lint && yarn build",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "lint": "yarn ts-standard --fix",
     "test": "jest"
   },

@@ -1,8 +1,8 @@
-import { ElementHandle, Page, BoundingBox, CDPSession, Protocol } from 'puppeteer'
+import type { ElementHandle, Page, BoundingBox, CDPSession, Protocol } from 'puppeteer'
 import debug from 'debug'
 import {
-  Vector,
-  TimedVector,
+  type Vector,
+  type TimedVector,
   bezierCurve,
   bezierCurveSpeed,
   direction,
@@ -220,32 +220,32 @@ const getElementBox = async (
 export function path (point: Vector, target: Vector, options?: number | PathOptions)
 export function path (point: Vector, target: BoundingBox, options?: number | PathOptions)
 export function path (start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] | TimedVector[] {
-  const spreadOverride = typeof options === 'number' ? options : options?.spreadOverride
-  const moveSpeed = typeof options === 'object' && options.moveSpeed
+  const optionsResolved: PathOptions = typeof options === 'number'
+    ? { spreadOverride: options }
+    : { ...options }
 
-  const defaultWidth = 100
-  const minSteps = 25
-  const width = 'width' in end && end.width !== 0 ? end.width : defaultWidth
-  const curve = bezierCurve(start, end, spreadOverride)
+  const DEFAULT_WIDTH = 100
+  const MIN_STEPS = 25
+  const width = 'width' in end && end.width !== 0 ? end.width : DEFAULT_WIDTH
+  const curve = bezierCurve(start, end, optionsResolved.spreadOverride)
   const length = curve.length() * 0.8
 
-  const speed = typeof moveSpeed === 'number' ? (25 / moveSpeed) : Math.random()
-  const baseTime = speed * minSteps
+  const speed = optionsResolved.moveSpeed !== undefined && optionsResolved.moveSpeed > 0
+    ? (25 / optionsResolved.moveSpeed)
+    : Math.random()
+  const baseTime = speed * MIN_STEPS
   const steps = Math.ceil((Math.log2(fitts(length, width) + 1) + baseTime) * 3)
   const re = curve.getLUT(steps)
-  return clampPositive(re, options)
+  return clampPositive(re, optionsResolved)
 }
 
-const clampPositive = (vectors: Vector[], options?: number | PathOptions): Vector[] | TimedVector[] => {
-  const clamp0 = (elem: number): number => Math.max(0, elem)
-  const clampedVectors = vectors.map((vector) => {
-    return {
-      x: clamp0(vector.x),
-      y: clamp0(vector.y)
-    }
-  })
+const clampPositive = (vectors: Vector[], options?: PathOptions): Vector[] | TimedVector[] => {
+  const clampedVectors = vectors.map((vector) => ({
+    x: Math.max(0, vector.x),
+    y: Math.max(0, vector.y)
+  }))
 
-  return (typeof options === 'number' || options?.showTimestamps === false) ? clampedVectors : generateTimestamps(clampedVectors, options)
+  return options?.showTimestamps === false ? clampedVectors : generateTimestamps(clampedVectors, options)
 }
 
 const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVector[] => {
@@ -358,7 +358,7 @@ export const createCursor = (
 
   // Move the mouse over a number of vectors
   const tracePath = async (
-    vectors: Iterable<Vector | TimedVector>,
+    vectors: Iterable<Vector>,
     abortOnMove: boolean = false
   ): Promise<void> => {
     const cdpClient = getCDPClient(page)
