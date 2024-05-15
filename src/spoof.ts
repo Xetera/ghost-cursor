@@ -1,13 +1,6 @@
 import type { ElementHandle, Page, BoundingBox, CDPSession } from 'puppeteer'
 import debug from 'debug'
-import {
-  type Vector,
-  bezierCurve,
-  direction,
-  magnitude,
-  origin,
-  overshoot
-} from './math'
+import { type Vector, bezierCurve, direction, magnitude, origin, overshoot } from './math'
 export { default as installMouseHelper } from './mouse-helper'
 
 const log = debug('ghost-cursor')
@@ -81,14 +74,17 @@ export interface PathOptions {
   readonly moveSpeed?: number
 }
 
-export interface RandomMoveOptions extends Pick<MoveOptions, 'moveDelay' | 'randomizeMoveDelay' | 'moveSpeed'> {
+export interface RandomMoveOptions
+  extends Pick<MoveOptions, 'moveDelay' | 'randomizeMoveDelay' | 'moveSpeed'> {
   /**
    * @default 2000
    */
   readonly moveDelay?: number
 }
 
-export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay' | 'randomizeMoveDelay'> {
+export interface MoveToOptions
+  extends PathOptions,
+    Pick<MoveOptions, 'moveDelay' | 'randomizeMoveDelay'> {
   /**
    * @default 0
    */
@@ -97,14 +93,8 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
 
 export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
-  click: (
-    selector?: string | ElementHandle,
-    options?: ClickOptions
-  ) => Promise<void>
-  move: (
-    selector: string | ElementHandle,
-    options?: MoveOptions
-  ) => Promise<void>
+  click: (selector?: string | ElementHandle, options?: ClickOptions) => Promise<void>
+  move: (selector: string | ElementHandle, options?: MoveOptions) => Promise<void>
   moveTo: (destination: Vector, options?: MoveToOptions) => Promise<void>
   getLocation: () => Vector
 }
@@ -128,10 +118,7 @@ const fitts = (distance: number, width: number): number => {
 }
 
 /** Get a random point on a box */
-const getRandomBoxPoint = (
-  { x, y, width, height }: BoundingBox,
-  options?: BoxOptions
-): Vector => {
+const getRandomBoxPoint = ({ x, y, width, height }: BoundingBox, options?: BoxOptions): Vector => {
   let paddingWidth = 0
   let paddingHeight = 0
 
@@ -151,15 +138,13 @@ const getRandomBoxPoint = (
 }
 
 /** The function signature to access the internal CDP client changed in puppeteer 14.4.1 */
-const getCDPClient = (page: any): CDPSession => typeof page._client === 'function' ? page._client() : page._client
+const getCDPClient = (page: any): CDPSession =>
+  typeof page._client === 'function' ? page._client() : page._client
 
 /** Get a random point on a browser window */
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = (page.target() as any)._targetId
-  const window = await getCDPClient(page).send(
-    'Browser.getWindowForTarget',
-    { targetId }
-  )
+  const window = await getCDPClient(page).send('Browser.getWindowForTarget', { targetId })
   return getRandomBoxPoint({
     x: origin.x,
     y: origin.y,
@@ -192,9 +177,7 @@ const getElementBox = async (
     if (!relativeToMainFrame) {
       const elementFrame = await element.contentFrame()
       const iframes =
-        elementFrame != null
-          ? await elementFrame.parentFrame()?.$$('xpath/.//iframe')
-          : null
+        elementFrame != null ? await elementFrame.parentFrame()?.$$('xpath/.//iframe') : null
       let frame: ElementHandle<Node> | undefined
       if (iframes != null) {
         for (const iframe of iframes) {
@@ -203,10 +186,8 @@ const getElementBox = async (
       }
       if (frame != null) {
         const boundingBox = await frame.boundingBox()
-        elementBox.x =
-          boundingBox !== null ? elementBox.x - boundingBox.x : elementBox.x
-        elementBox.y =
-          boundingBox !== null ? elementBox.y - boundingBox.y : elementBox.y
+        elementBox.x = boundingBox !== null ? elementBox.x - boundingBox.x : elementBox.x
+        elementBox.y = boundingBox !== null ? elementBox.y - boundingBox.y : elementBox.y
       }
     }
 
@@ -217,12 +198,17 @@ const getElementBox = async (
   }
 }
 
-export function path (point: Vector, target: Vector, optionsOrSpread?: number | PathOptions)
-export function path (point: Vector, target: BoundingBox, optionsOrSpread?: number | PathOptions)
-export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?: number | PathOptions): Vector[] {
-  const optionsResolved: PathOptions = typeof optionsOrSpread === 'number'
-    ? { spreadOverride: optionsOrSpread }
-    : { ...optionsOrSpread }
+export function path(point: Vector, target: Vector, optionsOrSpread?: number | PathOptions)
+export function path(point: Vector, target: BoundingBox, optionsOrSpread?: number | PathOptions)
+export function path(
+  start: Vector,
+  end: BoundingBox | Vector,
+  optionsOrSpread?: number | PathOptions
+): Vector[] {
+  const optionsResolved: PathOptions =
+    typeof optionsOrSpread === 'number'
+      ? { spreadOverride: optionsOrSpread }
+      : { ...optionsOrSpread }
 
   const DEFAULT_WIDTH = 100
   const MIN_STEPS = 25
@@ -230,15 +216,17 @@ export function path (start: Vector, end: BoundingBox | Vector, optionsOrSpread?
   const curve = bezierCurve(start, end, optionsResolved.spreadOverride)
   const length = curve.length() * 0.8
 
-  const speed = optionsResolved.moveSpeed !== undefined && optionsResolved.moveSpeed > 0
-    ? (25 / optionsResolved.moveSpeed)
-    : Math.random()
+  const speed =
+    optionsResolved.moveSpeed !== undefined && optionsResolved.moveSpeed > 0
+      ? 25 / optionsResolved.moveSpeed
+      : Math.random()
   const baseTime = speed * MIN_STEPS
   const steps = Math.ceil((Math.log2(fitts(length, width) + 1) + baseTime) * 3)
   const re = curve.getLUT(steps)
   return clampPositive(re)
 }
 
+// prettier-ignore
 const clampPositive = (vectors: Vector[]): Vector[] => vectors.map((vector) => ({
   x: Math.max(0, vector.x),
   y: Math.max(0, vector.y)
@@ -247,14 +235,12 @@ const clampPositive = (vectors: Vector[]): Vector[] => vectors.map((vector) => (
 const shouldOvershoot = (a: Vector, b: Vector, threshold: number): boolean =>
   magnitude(direction(a, b)) > threshold
 
-const intersectsElement = (vec: Vector, box: BoundingBox): boolean => {
-  return (
-    vec.x > box.x &&
-    vec.x <= box.x + box.width &&
-    vec.y > box.y &&
-    vec.y <= box.y + box.height
-  )
-}
+const intersectsElement = (vec: Vector, box: BoundingBox): boolean =>
+  // prettier-ignore
+  vec.x > box.x &&
+  vec.x <= box.x + box.width &&
+  vec.y > box.y &&
+  vec.y <= box.y + box.height
 
 const boundingBoxWithFallback = async (
   page: Page,
@@ -262,9 +248,7 @@ const boundingBoxWithFallback = async (
 ): Promise<BoundingBox> => {
   let box = await getElementBox(page, elem)
   if (box == null) {
-    box = (await elem.evaluate((el: Element) =>
-      el.getBoundingClientRect()
-    )) as BoundingBox
+    box = (await elem.evaluate((el: Element) => el.getBoundingClientRect())) as BoundingBox
   }
 
   return box
@@ -350,7 +334,9 @@ export const createCursor = (
         await tracePath(path(previous, rand, optionsResolved), true)
         previous = rand
       }
-      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+      await delay(
+        optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1)
+      )
       randomMove(options).then(
         (_) => {},
         (_) => {}
@@ -361,18 +347,15 @@ export const createCursor = (
   }
 
   const actions: GhostCursor = {
-    toggleRandomMove (random: boolean): void {
+    toggleRandomMove(random: boolean): void {
       moving = !random
     },
 
-    getLocation (): Vector {
+    getLocation(): Vector {
       return previous
     },
 
-    async click (
-      selector?: string | ElementHandle,
-      options?: ClickOptions
-    ): Promise<void> {
+    async click(selector?: string | ElementHandle, options?: ClickOptions): Promise<void> {
       const optionsResolved = {
         moveDelay: 2000,
         hesitate: 0,
@@ -402,15 +385,14 @@ export const createCursor = (
         log('Warning: could not click mouse, error message:', error)
       }
 
-      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+      await delay(
+        optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1)
+      )
 
       actions.toggleRandomMove(wasRandom)
     },
 
-    async move (
-      selector: string | ElementHandle,
-      options?: MoveOptions
-    ): Promise<void> {
+    async move(selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
       const optionsResolved = {
         moveDelay: 0,
         maxTries: 10,
@@ -423,7 +405,7 @@ export const createCursor = (
       const wasRandom = !moving
 
       const go = async (iteration: number): Promise<void> => {
-        if (iteration > (optionsResolved.maxTries)) {
+        if (iteration > optionsResolved.maxTries) {
           throw Error('Could not mouse-over element within enough tries')
         }
 
@@ -480,17 +462,16 @@ export const createCursor = (
           destination,
           optionsResolved.overshootThreshold
         )
-        const to = overshooting
-          ? overshoot(destination, OVERSHOOT_RADIUS)
-          : destination
+        const to = overshooting ? overshoot(destination, OVERSHOOT_RADIUS) : destination
 
         await tracePath(path(previous, to, optionsResolved))
 
         if (overshooting) {
-          const correction = path(to, { ...dimensions, ...destination }, {
-            ...optionsResolved,
-            spreadOverride: OVERSHOOT_SPREAD
-          })
+          const correction = path(
+            to,
+            { ...dimensions, ...destination },
+            { ...optionsResolved, spreadOverride: OVERSHOOT_SPREAD }
+          )
 
           await tracePath(correction)
         }
@@ -512,10 +493,12 @@ export const createCursor = (
 
       actions.toggleRandomMove(wasRandom)
 
-      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+      await delay(
+        optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1)
+      )
     },
 
-    async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
+    async moveTo(destination: Vector, options?: MoveToOptions): Promise<void> {
       const optionsResolved = {
         moveDelay: 0,
         randomizeMoveDelay: true,
@@ -528,7 +511,9 @@ export const createCursor = (
       await tracePath(path(previous, destination, optionsResolved))
       actions.toggleRandomMove(wasRandom)
 
-      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+      await delay(
+        optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1)
+      )
     }
   }
 

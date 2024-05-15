@@ -14,11 +14,9 @@ export const add = (a: Vector, b: Vector): Vector => ({ x: a.x + b.x, y: a.y + b
 
 export const direction = (a: Vector, b: Vector): Vector => sub(b, a)
 export const perpendicular = (a: Vector): Vector => ({ x: a.y, y: -1 * a.x })
-export const magnitude = (a: Vector): number =>
-  Math.sqrt(Math.pow(a.x, 2) + Math.pow(a.y, 2))
+export const magnitude = (a: Vector): number => Math.sqrt(Math.pow(a.x, 2) + Math.pow(a.y, 2))
 export const unit = (a: Vector): Vector => div(a, magnitude(a))
-export const setMagnitude = (a: Vector, amount: number): Vector =>
-  mult(unit(a), amount)
+export const setMagnitude = (a: Vector, amount: number): Vector => mult(unit(a), amount)
 
 export const randomNumberRange = (min: number, max: number): number =>
   Math.random() * (max - min) + min
@@ -29,21 +27,13 @@ export const randomVectorOnLine = (a: Vector, b: Vector): Vector => {
   return add(a, mult(vec, multiplier))
 }
 
-const randomNormalLine = (
-  a: Vector,
-  b: Vector,
-  range: number
-): [Vector, Vector] => {
+const randomNormalLine = (a: Vector, b: Vector, range: number): [Vector, Vector] => {
   const randMid = randomVectorOnLine(a, b)
   const normalV = setMagnitude(perpendicular(direction(a, randMid)), range)
   return [randMid, normalV]
 }
 
-export const generateBezierAnchors = (
-  a: Vector,
-  b: Vector,
-  spread: number
-): [Vector, Vector] => {
+export const generateBezierAnchors = (a: Vector, b: Vector, spread: number): [Vector, Vector] => {
   const side = Math.round(Math.random()) === 1 ? 1 : -1
   const calc = (): Vector => {
     const [randMid, normalV] = randomNormalLine(a, b, spread)
