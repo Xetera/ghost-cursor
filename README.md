@@ -40,6 +40,28 @@ const route = path(from, to)
  */
 ```
 
+Generating movement data between 2 coordinates with timestamps.
+```js
+import { path } from "ghost-cursor"
+
+const from = { x: 100, y: 100 }
+const to = { x: 600, y: 700 }
+
+const route = path(from, to, { useTimestamps: true })
+
+/**
+ * [
+ *   { x: 100, y: 100, timestamp: 1711850430643 },
+ *   { x: 114.78071695023473, y: 97.52340709495319, timestamp: 1711850430697 },
+ *   { x: 129.1362373468682, y: 96.60141853603243, timestamp: 1711850430749 },
+ *   { x: 143.09468422606352, y: 97.18676354029148, timestamp: 1711850430799 },
+ *   { x: 156.68418062398405, y: 99.23217132478408, timestamp: 1711850430848 },
+ *   ... and so on
+ * ]
+ */
+```
+
+
 Usage with puppeteer:
 
 ```js
@@ -137,16 +159,16 @@ Installs a mouse helper on the page. Makes pointer visible. Use for debugging on
 
 Gets a random point on the browser window.
 
-#### `path(point: Vector, target: Vector, optionsOrSpread?: number | PathOptions): Vector[]`
+#### `path(point: Vector, target: Vector, options?: number | PathOptions): Vector[] | TimedVector[]`
 
 Generates a set of points for mouse movement between two coordinates.
 
 - **point:** Starting point of the movement.
 - **target:** Ending point of the movement.
-- **optionsOrSpread (optional):** Additional options for generating the path.
+- **options (optional):** Additional options for generating the path. Can also be a number which will set `spreadOverride`.
   - `spreadOverride (number):` Override the spread of the generated path.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
-
+  - `useTimestamps (boolean):` Generate timestamps for each point based on the trapezoidal rule.
 
 ## How does it work
 

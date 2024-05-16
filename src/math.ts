@@ -4,6 +4,9 @@ export interface Vector {
   x: number
   y: number
 }
+export interface TimedVector extends Vector {
+  timestamp: number
+}
 export const origin: Vector = { x: 0, y: 0 }
 
 // maybe i should've just imported a vector library lol
@@ -79,4 +82,16 @@ export const bezierCurve = (
   const spread = spreadOverride ?? clamp(length, MIN_SPREAD, MAX_SPREAD)
   const anchors = generateBezierAnchors(start, finish, spread)
   return new Bezier(start, ...anchors, finish)
+}
+
+export const bezierCurveSpeed = (
+  t: number,
+  P0: Vector,
+  P1: Vector,
+  P2: Vector,
+  P3: Vector
+): number => {
+  const B1 = 3 * (1 - t) ** 2 * (P1.x - P0.x) + 6 * (1 - t) * t * (P2.x - P1.x) + 3 * t ** 2 * (P3.x - P2.x)
+  const B2 = 3 * (1 - t) ** 2 * (P1.y - P0.y) + 6 * (1 - t) * t * (P2.y - P1.y) + 3 * t ** 2 * (P3.y - P2.y)
+  return Math.sqrt(B1 ** 2 + B2 ** 2)
 }
