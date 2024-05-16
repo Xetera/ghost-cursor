@@ -81,7 +81,7 @@ export interface PathOptions {
      * Default is random.
      */
   readonly moveSpeed?: number
-  readonly showTimestamps?: boolean
+  readonly useTimestamps?: boolean
 }
 
 export interface RandomMoveOptions extends Pick<MoveOptions, 'moveDelay' | 'randomizeMoveDelay' | 'moveSpeed'> {
@@ -248,7 +248,7 @@ const clampPositive = (vectors: Vector[], options?: PathOptions): Vector[] | Tim
     y: Math.max(0, vector.y)
   }))
 
-  return options?.showTimestamps === false ? clampedVectors : generateTimestamps(clampedVectors, options)
+  return options?.useTimestamps === true ? generateTimestamps(clampedVectors, options) : clampedVectors
 }
 
 const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVector[] => {
@@ -266,12 +266,7 @@ const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVect
     return Math.round(total / speed)
   }
 
-  const timedVectors = vectors.map((vector) => {
-    return {
-      ...vector,
-      timestamp: 0
-    }
-  })
+  const timedVectors: TimedVector[] = vectors.map((vector) => ({ ...vector, timestamp: 0 }))
 
   for (let i = 0; i < timedVectors.length; i++) {
     const P0 = i === 0 ? timedVectors[i] : timedVectors[i - 1]
@@ -282,7 +277,7 @@ const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVect
 
     timedVectors[i] = {
       ...timedVectors[i],
-      timestamp: i === 0 ? Date.now() : (timedVectors[i - 1] as TimedVector).timestamp + time
+      timestamp: i === 0 ? Date.now() : timedVectors[i - 1].timestamp + time
     }
   }
 

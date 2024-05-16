@@ -47,7 +47,7 @@ import { path } from "ghost-cursor"
 const from = { x: 100, y: 100 }
 const to = { x: 600, y: 700 }
 
-const route = path(from, to, { showTimestamps: true })
+const route = path(from, to, { useTimestamps: true })
 
 /**
  * [
@@ -159,16 +159,16 @@ Installs a mouse helper on the page. Makes pointer visible. Use for debugging on
 
 Gets a random point on the browser window.
 
-#### `path(point: Vector, target: Vector, optionsOrSpread?: number | PathOptions): Vector[]`
+#### `path(point: Vector, target: Vector, options?: number | PathOptions): Vector[] | TimedVector[]`
 
 Generates a set of points for mouse movement between two coordinates.
 
 - **point:** Starting point of the movement.
 - **target:** Ending point of the movement.
-- **optionsOrSpread (optional):** Additional options for generating the path.
+- **options (optional):** Additional options for generating the path. Can also be a number which will set `spreadOverride`.
   - `spreadOverride (number):` Override the spread of the generated path.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
-  - `showTimestamps (boolean):` Generate timestamps for each point based on the trapezoidal rule.
+  - `useTimestamps (boolean):` Generate timestamps for each point based on the trapezoidal rule.
 
 ## How does it work
 
