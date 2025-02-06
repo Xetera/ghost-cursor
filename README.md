@@ -115,11 +115,10 @@ Toggles random mouse movements on or off.
 Simulates a mouse click at the specified selector or element.
 
 - **selector (optional):** CSS selector or ElementHandle to identify the target element.
-- **options (optional):** Additional options for clicking.
+- **options (optional):** Additional options for clicking. **Extends the `options` of the `move` function (below)**
   - `hesitate (number):` Delay before initiating the click action in milliseconds. Default is `0`.
   - `waitForClick (number):` Delay between mousedown and mouseup in milliseconds. Default is `0`.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `2000`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
-  - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
 
 #### `move(selector: string | ElementHandle, options?: MoveOptions): Promise<void>`
 
@@ -134,6 +133,8 @@ Moves the mouse to the specified selector or element.
   - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
   - `overshootThreshold (number):` Distance from current location to destination that triggers overshoot to occur. (Below this distance, no overshoot will occur). Default is `500`.
+  - `scrollBehavior (ScrollBehavior):` Scroll behavior when target element is outside the visible window. Default is `undefined` (browser default).
+  - `scrollWait (number):` Time to wait after scrolling (when scrolling occurs due to target element being outside the visible window). Default is `200`.
 
 #### `moveTo(destination: Vector, options?: MoveToOptions): Promise<void>`
 

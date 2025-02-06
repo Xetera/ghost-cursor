@@ -59,7 +59,7 @@ export interface MoveOptions extends BoxOptions, Pick<PathOptions, 'moveSpeed'> 
   readonly scrollBehavior?: ScrollBehavior
   /**
    * Time to wait after scrolling (when scrolling occurs due to target element being outside the visible window)
-   * @default 2000
+   * @default 200
    */
   readonly scrollWait?: number
 }
@@ -76,7 +76,7 @@ export interface ClickOptions extends MoveOptions {
    */
   readonly waitForClick?: number
   /**
-   * @default 200
+   * @default 2000
    */
   readonly moveDelay?: number
 }
@@ -525,17 +525,20 @@ export const createCursor = (
         }
 
         // Make sure the object is in view
-        const objectId = elem.remoteObject().objectId
-        if (objectId !== undefined) {
-          const scrollElemIntoView = async (): Promise<void> => await elem.evaluate((e, scrollBehavior) => e.scrollIntoView({
-            block: 'center',
-            behavior: scrollBehavior
-          }), optionsResolved.scrollBehavior)
+        if (!(await elem.isIntersectingViewport())) {
+          const scrollElemIntoView = async (): Promise<void> =>
+            await elem.evaluate((e, scrollBehavior) => e.scrollIntoView({
+              block: 'center',
+              behavior: scrollBehavior
+            }), optionsResolved.scrollBehavior)
 
           if (optionsResolved.scrollBehavior !== undefined) {
+            // DOM.scrollIntoViewIfNeeded is instant scroll, so do the JS scroll if scrollBehavior passed
             await scrollElemIntoView()
           } else {
             try {
+              const { objectId } = elem.remoteObject()
+              if (objectId === undefined) throw new Error()
               await getCDPClient(page).send('DOM.scrollIntoViewIfNeeded', {
                 objectId
               })
@@ -545,7 +548,6 @@ export const createCursor = (
               await scrollElemIntoView()
             }
           }
-
           await delay(optionsResolved.scrollWait)
         }
 
