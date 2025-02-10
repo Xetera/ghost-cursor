@@ -1,6 +1,5 @@
-index.html
 node_modules
 .vscode
 .cache
 dist
-test.ts
+__test__
