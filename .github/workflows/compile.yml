@@ -21,7 +21,10 @@ jobs:
       - name: Install dependencies and build
         run: yarn
       - name: Run tests
-        run: yarn test
+        run: |
+          # See: https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+          echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          yarn test
       - name: Upload compiled code as artifact
         uses: actions/upload-artifact@v4
         with:
