@@ -52,6 +52,21 @@ export interface MoveOptions extends BoxOptions, Pick<PathOptions, 'moveSpeed'> 
    * @default 500
    */
   readonly overshootThreshold?: number
+  /**
+   * Scroll behavior when target element is outside the visible window.
+   *
+   * {@link https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView#behavior}
+   *
+   * NOTE: If this is specified, will use JS scrolling instead of CDP scrolling, which is detectable!
+   *
+   * @default undefined (use CDP scrolling)
+   */
+  readonly scrollBehavior?: ScrollBehavior
+  /**
+   * Time to wait after scrolling (when scrolling occurs due to target element being outside the visible window)
+   * @default 200
+   */
+  readonly scrollWait?: number
 }
 
 export interface ClickOptions extends MoveOptions {
@@ -472,6 +487,7 @@ export const createCursor = (
         maxTries: 10,
         overshootThreshold: 500,
         randomizeMoveDelay: true,
+        scrollWait: 200,
         ...defaultOptions?.move,
         ...options
       } satisfies MoveOptions
@@ -514,19 +530,32 @@ export const createCursor = (
         }
 
         // Make sure the object is in view
-        const objectId = elem.remoteObject().objectId
-        if (objectId !== undefined) {
-          try {
-            await getCDPClient(page).send('DOM.scrollIntoViewIfNeeded', {
-              objectId
-            })
-          } catch (e) {
+        if (!(await elem.isIntersectingViewport())) {
+          const scrollElemIntoView = async (): Promise<void> =>
+            await elem.evaluate((e, scrollBehavior) => e.scrollIntoView({
+              block: 'center',
+              behavior: scrollBehavior
+            }), optionsResolved.scrollBehavior)
+
+          if (optionsResolved.scrollBehavior !== undefined) {
+            // DOM.scrollIntoViewIfNeeded is instant scroll, so do the JS scroll if scrollBehavior passed
+            await scrollElemIntoView()
+          } else {
+            try {
+              const { objectId } = elem.remoteObject()
+              if (objectId === undefined) throw new Error()
+              await getCDPClient(page).send('DOM.scrollIntoViewIfNeeded', {
+                objectId
+              })
+            } catch (e) {
             // use regular JS scroll method as a fallback
-            log('Falling back to JS scroll method', e)
-            await elem.evaluate((e) => e.scrollIntoView({ block: 'center' }))
-            await new Promise((resolve) => setTimeout(resolve, 2000)) // Wait a bit until the scroll has finished
+              log('Falling back to JS scroll method', e)
+              await scrollElemIntoView()
+            }
           }
+          await delay(optionsResolved.scrollWait)
         }
+
         const box = await boundingBoxWithFallback(page, elem)
         const { height, width } = box
         const destination = getRandomBoxPoint(box, optionsResolved)
