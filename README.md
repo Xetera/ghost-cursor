@@ -151,7 +151,7 @@ Scrolls the element into view. If already in view, no scroll occurs.
 - **element:** ElementHandle to identify the target element.
 - **options (optional):** Additional options for scrolling.
   - `scrollSpeed (number):` Scroll speed (when scrolling occurs). 0 to 100. 100 is instant. Default is `100`.
-  - `scrollWait (number):` Time to wait after scrolling (when scrolling occurs). Default is `200`.
+  - `scrollDelay (number):` Time to wait after scrolling (when scrolling occurs). Default is `200`.
 
 #### `getLocation(): Vector`
 

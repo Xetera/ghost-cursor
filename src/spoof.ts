@@ -37,7 +37,7 @@ export interface ScrollOptions {
    * Time to wait after scrolling (when scrolling occurs).
    * @default 200
    */
-  readonly scrollWait?: number
+  readonly scrollDelay?: number
 }
 
 export interface MoveOptions extends BoxOptions, ScrollOptions, Pick<PathOptions, 'moveSpeed'> {
@@ -599,7 +599,7 @@ export const createCursor = (
 
       const optionsResolved = {
         scrollSpeed: 100,
-        scrollWait: 200,
+        scrollDelay: 200,
         ...options
       } satisfies ScrollOptions
 
@@ -698,7 +698,7 @@ export const createCursor = (
         }))
       }
 
-      await delay(optionsResolved.scrollWait)
+      await delay(optionsResolved.scrollDelay)
     }
   }
 
