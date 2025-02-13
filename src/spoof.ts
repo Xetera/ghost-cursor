@@ -54,6 +54,7 @@ export interface MoveOptions extends BoxOptions, Pick<PathOptions, 'moveSpeed'> 
   readonly overshootThreshold?: number
   /**
    * Scroll behavior when target element is outside the visible window.
+   * {@link https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView#behavior}
    * @default undefined (default)
    */
   readonly scrollBehavior?: ScrollBehavior
