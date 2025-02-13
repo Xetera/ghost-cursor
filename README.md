@@ -144,11 +144,11 @@ Moves the mouse to the specified destination point.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
   - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
   
-#### `scrollIntoView(selector: ElementHandle, options?: ScrollOptions) => Promise<void>`
+#### `scrollIntoView(element: ElementHandle, options?: ScrollOptions) => Promise<void>`
 
 Scrolls the element into view. If already in view, no scroll occurs.
 
-- **selector:** CSS selector or ElementHandle to identify the target element.
+- **element:** ElementHandle to identify the target element.
 - **options (optional):** Additional options for scrolling.
   - `scrollSpeed (number):` Scroll speed (when scrolling occurs). 0 to 100. 100 is instant. Default is `100`.
   - `scrollWait (number):` Time to wait after scrolling (when scrolling occurs). Default is `200`.
