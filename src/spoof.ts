@@ -240,9 +240,9 @@ const getElementBox = async (
   }
 }
 
-export function path(point: Vector, target: Vector, options?: number | PathOptions)
-export function path(point: Vector, target: BoundingBox, options?: number | PathOptions)
-export function path(start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] | TimedVector[] {
+export function path (point: Vector, target: Vector, options?: number | PathOptions)
+export function path (point: Vector, target: BoundingBox, options?: number | PathOptions)
+export function path (start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] | TimedVector[] {
   const optionsResolved: PathOptions = typeof options === 'number'
     ? { spreadOverride: options }
     : { ...options }
@@ -433,15 +433,15 @@ export const createCursor = (
   }
 
   const actions: GhostCursor = {
-    toggleRandomMove(random: boolean): void {
+    toggleRandomMove (random: boolean): void {
       moving = !random
     },
 
-    getLocation(): Vector {
+    getLocation (): Vector {
       return previous
     },
 
-    async click(
+    async click (
       selector?: string | ElementHandle,
       options?: ClickOptions
     ): Promise<void> {
@@ -479,7 +479,7 @@ export const createCursor = (
       actions.toggleRandomMove(wasRandom)
     },
 
-    async move(
+    async move (
       selector: string | ElementHandle,
       options?: MoveOptions
     ): Promise<void> {
@@ -576,7 +576,7 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
-    async moveTo(destination: Vector, options?: MoveToOptions): Promise<void> {
+    async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
       const optionsResolved = {
         moveDelay: 0,
         randomizeMoveDelay: true,
@@ -592,7 +592,7 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
-    async scrollIntoView(elem: ElementHandle, options?: ScrollOptions): Promise<void> {
+    async scrollIntoView (elem: ElementHandle, options?: ScrollOptions): Promise<void> {
       if (await elem.isIntersectingViewport()) {
         return
       }
