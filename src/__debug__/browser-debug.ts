@@ -10,10 +10,10 @@ const delay = async (ms: number): Promise<void> => {
 }
 
 const cursorDefaultOptions = {
-  moveDelay: 0,
+  moveDelay: 100,
   moveSpeed: 99,
-  hesitate: 0,
-  waitForClick: 0,
+  hesitate: 100,
+  waitForClick: 10,
   scrollWait: 0
 } as const satisfies ClickOptions
 
