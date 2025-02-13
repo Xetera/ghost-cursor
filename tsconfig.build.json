@@ -1,4 +1,8 @@
 {
-    "extends": "./tsconfig",
-    "exclude": ["node_modules", "**/__test__/**/*"]
-  }
+  "extends": "./tsconfig",
+  "exclude": [
+    "node_modules",
+    "**/__test__/**/*",
+    "**/__debug__/**/*"
+  ]
+}

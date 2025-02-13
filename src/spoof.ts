@@ -16,7 +16,7 @@ const log = debug('ghost-cursor')
 
 export interface BoxOptions {
   /**
-   * Percentage of padding to be added inside the element.
+   * Percentage of padding to be added inside the element when determining the target point.
    * Example:
    * - `0` = may be anywhere within the element.
    * - `100` = will always be center of element.
@@ -423,8 +423,8 @@ export const createCursor = (
       }
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
       randomMove(options).then(
-        (_) => {},
-        (_) => {}
+        (_) => { },
+        (_) => { }
       ) // fire and forget, recursive function
     } catch (_) {
       log('Warning: stopping random mouse movements')
@@ -620,8 +620,8 @@ export const createCursor = (
   // Start random mouse movements. Do not await the promise but return immediately
   if (performRandomMoves) {
     randomMove().then(
-      (_) => {},
-      (_) => {}
+      (_) => { },
+      (_) => { }
     )
   }
 
