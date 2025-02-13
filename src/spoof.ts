@@ -8,7 +8,8 @@ import {
   direction,
   magnitude,
   origin,
-  overshoot
+  overshoot,
+  add
 } from './math'
 export { default as installMouseHelper } from './mouse-helper'
 
@@ -24,7 +25,8 @@ export interface BoxOptions {
    */
   readonly paddingPercentage?: number
   /**
-   * Destination to move the cursor to. If specified, `paddingPercentage` is not used.
+   * Destination to move the cursor to, relative to the top-left corner of the element.
+   * If specified, `paddingPercentage` is not used.
    * If not specified (default), destination is random point within the `paddingPercentage`.
    * @default undefined (random point)
    */
@@ -563,8 +565,10 @@ export const createCursor = (
         }
 
         const box = await boundingBoxWithFallback(page, elem)
-        const { height, width } = box
-        const destination = optionsResolved.destination ?? getRandomBoxPoint(box, optionsResolved)
+        const { height, width, ...location } = box
+        const destination = (optionsResolved.destination !== undefined)
+          ? add(location, optionsResolved.destination)
+          : getRandomBoxPoint(box, optionsResolved)
         const dimensions = { height, width }
         const overshooting = shouldOvershoot(
           previous,
