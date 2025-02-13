@@ -133,7 +133,7 @@ Moves the mouse to the specified selector or element.
   - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
   - `overshootThreshold (number):` Distance from current location to destination that triggers overshoot to occur. (Below this distance, no overshoot will occur). Default is `500`.
-  - `scrollBehavior (ScrollBehavior):` Scroll behavior when target element is outside the visible window ([docs/available values](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView#behavior)). Default is `undefined` (browser default).
+  - `scrollBehavior (ScrollBehavior):` Scroll behavior when target element is outside the visible window ([docs/available values](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView#behavior)). **If this is specified, will use JS scrolling instead of CDP scrolling, which is detectable**. Default is `undefined` (CDP `scrollIntoView`).
   - `scrollWait (number):` Time to wait after scrolling (when scrolling occurs due to target element being outside the visible window). Default is `200`.
 
 #### `moveTo(destination: Vector, options?: MoveToOptions): Promise<void>`
