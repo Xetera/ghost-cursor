@@ -565,9 +565,9 @@ export const createCursor = (
         }
 
         const box = await boundingBoxWithFallback(page, elem)
-        const { height, width, ...location } = box
+        const { height, width } = box
         const destination = (optionsResolved.destination !== undefined)
-          ? add(location, optionsResolved.destination)
+          ? add(box, optionsResolved.destination)
           : getRandomBoxPoint(box, optionsResolved)
         const dimensions = { height, width }
         const overshooting = shouldOvershoot(
