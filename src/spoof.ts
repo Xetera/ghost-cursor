@@ -29,9 +29,9 @@ export interface BoxOptions {
 
 export interface ScrollOptions {
   /**
-    * Scroll speed (when scrolling occurs). 0 to 100. 100 is instant.
-    * @default 100
-    */
+   * Scroll speed (when scrolling occurs). 0 to 100. 100 is instant.
+   * @default 100
+   */
   readonly scrollSpeed?: number
   /**
    * Time to wait after scrolling (when scrolling occurs).
@@ -240,9 +240,9 @@ const getElementBox = async (
   }
 }
 
-export function path (point: Vector, target: Vector, options?: number | PathOptions)
-export function path (point: Vector, target: BoundingBox, options?: number | PathOptions)
-export function path (start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] | TimedVector[] {
+export function path(point: Vector, target: Vector, options?: number | PathOptions)
+export function path(point: Vector, target: BoundingBox, options?: number | PathOptions)
+export function path(start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] | TimedVector[] {
   const optionsResolved: PathOptions = typeof options === 'number'
     ? { spreadOverride: options }
     : { ...options }
@@ -424,8 +424,8 @@ export const createCursor = (
       }
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
       randomMove(options).then(
-        (_) => {},
-        (_) => {}
+        (_) => { },
+        (_) => { }
       ) // fire and forget, recursive function
     } catch (_) {
       log('Warning: stopping random mouse movements')
@@ -433,15 +433,15 @@ export const createCursor = (
   }
 
   const actions: GhostCursor = {
-    toggleRandomMove (random: boolean): void {
+    toggleRandomMove(random: boolean): void {
       moving = !random
     },
 
-    getLocation (): Vector {
+    getLocation(): Vector {
       return previous
     },
 
-    async click (
+    async click(
       selector?: string | ElementHandle,
       options?: ClickOptions
     ): Promise<void> {
@@ -479,7 +479,7 @@ export const createCursor = (
       actions.toggleRandomMove(wasRandom)
     },
 
-    async move (
+    async move(
       selector: string | ElementHandle,
       options?: MoveOptions
     ): Promise<void> {
@@ -576,7 +576,7 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
-    async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
+    async moveTo(destination: Vector, options?: MoveToOptions): Promise<void> {
       const optionsResolved = {
         moveDelay: 0,
         randomizeMoveDelay: true,
@@ -592,7 +592,7 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
-    async scrollIntoView (elem: ElementHandle, options?: ScrollOptions): Promise<void> {
+    async scrollIntoView(elem: ElementHandle, options?: ScrollOptions): Promise<void> {
       if (await elem.isIntersectingViewport()) {
         return
       }
@@ -705,8 +705,8 @@ export const createCursor = (
   // Start random mouse movements. Do not await the promise but return immediately
   if (performRandomMoves) {
     randomMove().then(
-      (_) => {},
-      (_) => {}
+      (_) => { },
+      (_) => { }
     )
   }
 
