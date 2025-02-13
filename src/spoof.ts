@@ -23,6 +23,12 @@ export interface BoxOptions {
    * @default 0
    */
   readonly paddingPercentage?: number
+  /**
+   * Destination to move the cursor to. If specified, `paddingPercentage` is not used.
+   * If not specified (default), destination is random point within the `paddingPercentage`.
+   * @default undefined (random point)
+   */
+  readonly destination?: Vector
 }
 
 export interface MoveOptions extends BoxOptions, Pick<PathOptions, 'moveSpeed'> {
@@ -152,7 +158,7 @@ const fitts = (distance: number, width: number): number => {
 /** Get a random point on a box */
 const getRandomBoxPoint = (
   { x, y, width, height }: BoundingBox,
-  options?: BoxOptions
+  options?: Pick<BoxOptions, 'paddingPercentage'>
 ): Vector => {
   let paddingWidth = 0
   let paddingHeight = 0
@@ -558,7 +564,7 @@ export const createCursor = (
 
         const box = await boundingBoxWithFallback(page, elem)
         const { height, width } = box
-        const destination = getRandomBoxPoint(box, optionsResolved)
+        const destination = optionsResolved.destination ?? getRandomBoxPoint(box, optionsResolved)
         const dimensions = { height, width }
         const overshooting = shouldOvershoot(
           previous,
