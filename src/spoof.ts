@@ -423,8 +423,8 @@ export const createCursor = (
       }
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
       randomMove(options).then(
-        (_) => {},
-        (_) => {}
+        (_) => { },
+        (_) => { }
       ) // fire and forget, recursive function
     } catch (_) {
       log('Warning: stopping random mouse movements')
@@ -620,8 +620,8 @@ export const createCursor = (
   // Start random mouse movements. Do not await the promise but return immediately
   if (performRandomMoves) {
     randomMove().then(
-      (_) => {},
-      (_) => {}
+      (_) => { },
+      (_) => { }
     )
   }
 
