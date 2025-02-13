@@ -35,9 +35,13 @@ puppeteer.launch({ headless: false }).then(async (browser) => {
   })
 
   const performActions = async (): Promise<void> => {
-    await cursor.click('#box')
+    await cursor.click('#box1')
 
-    await cursor.click('#boxOutOfView')
+    await cursor.click('#box2')
+
+    await cursor.click('#box3')
+
+    await cursor.click('#box1')
   }
 
   await performActions()
