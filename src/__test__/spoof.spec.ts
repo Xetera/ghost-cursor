@@ -13,7 +13,7 @@ const cursorDefaultOptions = {
   moveSpeed: 99,
   hesitate: 0,
   waitForClick: 0,
-  scrollWait: 0
+  scrollDelay: 0
 } as const satisfies ClickOptions
 
 describe('Mouse movements', () => {
