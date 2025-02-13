@@ -16,7 +16,7 @@ const log = debug('ghost-cursor')
 
 export interface BoxOptions {
   /**
-   * Percentage of padding to be added inside the element.
+   * Percentage of padding to be added inside the element when determining the target point.
    * Example:
    * - `0` = may be anywhere within the element.
    * - `100` = will always be center of element.
