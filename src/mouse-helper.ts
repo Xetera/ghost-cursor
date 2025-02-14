@@ -97,7 +97,7 @@ async function installMouseHelper (page: Page): Promise<void> {
         },
         true
       )
-      function updateButtons (buttons): void {
+      function updateButtons (buttons: number): void {
         for (let i = 0; i < 5; i++) {
           box.classList.toggle('button-' + String(i), Boolean(buttons & (1 << i)))
         }
