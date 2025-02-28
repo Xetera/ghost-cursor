@@ -15,7 +15,7 @@ export const div = (a: Vector, b: number): Vector => ({ x: a.x / b, y: a.y / b }
 export const mult = (a: Vector, b: number): Vector => ({ x: a.x * b, y: a.y * b })
 export const add = (a: Vector, b: Vector): Vector => ({ x: a.x + b.x, y: a.y + b.y })
 
-export const scale = (value, range1: [number, number], range2: [number, number]): number =>
+export const scale = (value: number, range1: [number, number], range2: [number, number]): number =>
   (value - range1[0]) * (range2[1] - range2[0]) / (range1[1] - range1[0]) + range2[0]
 
 export const direction = (a: Vector, b: Vector): Vector => sub(b, a)
