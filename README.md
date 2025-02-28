@@ -152,6 +152,7 @@ Scrolls the element into view. If already in view, no scroll occurs.
 - **options (optional):** Additional options for scrolling.
   - `scrollSpeed (number):` Scroll speed (when scrolling occurs). 0 to 100. 100 is instant. Default is `100`.
   - `scrollDelay (number):` Time to wait after scrolling (when scrolling occurs). Default is `200`.
+  - `inViewportMargin (number):` Margin (in px) to add around the element when ensuring it is in the viewport. (Does not take effect if `scrollSpeed=100`, or if CDP scroll fails.) Default is `0`.
 
 #### `getLocation(): Vector`
 

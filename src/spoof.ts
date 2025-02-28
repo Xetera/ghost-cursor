@@ -38,6 +38,12 @@ export interface ScrollOptions {
    * @default 200
    */
   readonly scrollDelay?: number
+  /**
+   * Margin (in px) to add around the element when ensuring it is in the viewport.
+   * (Does not take effect if `scrollSpeed=100`, or if CDP scroll fails.)
+   * @default 30
+   */
+  readonly inViewportMargin?: number
 }
 
 export interface MoveOptions extends BoxOptions, ScrollOptions, Pick<PathOptions, 'moveSpeed'> {
@@ -593,15 +599,34 @@ export const createCursor = (
     },
 
     async scrollIntoView (elem: ElementHandle, options?: ScrollOptions): Promise<void> {
-      if (await elem.isIntersectingViewport()) {
-        return
-      }
-
       const optionsResolved = {
         scrollSpeed: 100,
         scrollDelay: 200,
+        inViewportMargin: 0,
         ...options
       } satisfies ScrollOptions
+
+      const { viewportWidth, viewportHeight } = await page.evaluate(() =>
+        ({ viewportWidth: window.innerWidth, viewportHeight: window.innerHeight })
+      )
+
+      const elemBox = await boundingBoxWithFallback(page, elem)
+      const margin = optionsResolved.inViewportMargin
+      const paddedBox = {
+        top: elemBox.y - margin,
+        left: elemBox.x - margin,
+        bottom: elemBox.y + elemBox.height + margin,
+        right: elemBox.x + elemBox.width + margin
+      }
+
+      const { top, left, bottom, right } = paddedBox
+
+      const isInViewport = top >= 0 &&
+          left >= 0 &&
+          bottom <= viewportHeight &&
+          right <= viewportWidth
+
+      if (isInViewport) return
 
       const scrollSpeed = clamp(optionsResolved.scrollSpeed, 1, 100)
 
@@ -609,29 +634,19 @@ export const createCursor = (
         const cdpClient = getCDPClient(page)
 
         const manuallyScroll = async (): Promise<void> => {
-          const SCROLL_OVERSHOOT = 30
-
-          const { innerWidth, innerHeight } = await page.evaluate(() =>
-            ({ innerWidth: window.innerWidth, innerHeight: window.innerHeight })
-          )
-
-          const { x: left, y: top, width, height } = await boundingBoxWithFallback(page, elem)
-          const bottom = top + height
-          const right = left + width
-
           let deltaY: number = 0
           let deltaX: number = 0
 
           if (top < 0) {
             deltaY = top // Scroll up
-          } else if (bottom > innerHeight) {
-            deltaY = bottom - innerHeight // Scroll down
+          } else if (bottom > viewportHeight) {
+            deltaY = bottom - viewportHeight // Scroll down
           }
 
           if (left < 0) {
             deltaX = left // Scroll left
-          } else if (right > innerWidth) {
-            deltaX = right - innerWidth// Scroll right
+          } else if (right > viewportWidth) {
+            deltaX = right - viewportWidth// Scroll right
           }
 
           const xDirection = deltaX < 0 ? -1 : 1
@@ -659,8 +674,8 @@ export const createCursor = (
             let longerDistanceDelta = largerDistanceScrollStep
             let shorterDistanceDelta = shorterDistanceScrollStep
             if (i === numSteps - 1) {
-              longerDistanceDelta += largerDistanceRemainder + SCROLL_OVERSHOOT
-              shorterDistanceDelta += shorterDistanceRemainder + SCROLL_OVERSHOOT
+              longerDistanceDelta += largerDistanceRemainder
+              shorterDistanceDelta += shorterDistanceRemainder
             }
             let [deltaX, deltaY] = largerDistanceDir === 'x'
               ? [longerDistanceDelta, shorterDistanceDelta]
