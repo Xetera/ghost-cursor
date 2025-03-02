@@ -115,7 +115,7 @@ Toggles random mouse movements on or off.
 Simulates a mouse click at the specified selector or element.
 
 - **selector (optional):** CSS selector or ElementHandle to identify the target element.
-- **options (optional):** Additional options for clicking. **Extends the `options` of the `move` function (below)**
+- **options (optional):** Additional options for clicking. **Extends the `options` of the `move` and `scrollIntoView` functions (below)**
   - `hesitate (number):` Delay before initiating the click action in milliseconds. Default is `0`.
   - `waitForClick (number):` Delay between mousedown and mouseup in milliseconds. Default is `0`.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `2000`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
@@ -125,16 +125,14 @@ Simulates a mouse click at the specified selector or element.
 Moves the mouse to the specified selector or element.
 
 - **selector:** CSS selector or ElementHandle to identify the target element.
-- **options (optional):** Additional options for moving.
-  - `paddingPercentage (number):` Percentage of padding to be added inside the element when determining the target point. Default is `0` (may move to anywhere within the element). `100` will always move to center of element.
+- **options (optional):** Additional options for moving. **Extends the `options` of the `scrollIntoView` function (below)**
+  - `paddingPercentage (number):` Percentage of padding to be added inside the element. Default is `0` (may move to anywhere within the element). `100` will always move to center of element.
   - `waitForSelector (number):` Time to wait for the selector to appear in milliseconds. Default is to not wait for selector.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
   - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
   - `maxTries (number):` Maximum number of attempts to mouse-over the element. Default is `10`.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
   - `overshootThreshold (number):` Distance from current location to destination that triggers overshoot to occur. (Below this distance, no overshoot will occur). Default is `500`.
-  - `scrollBehavior (ScrollBehavior):` Scroll behavior when target element is outside the visible window ([docs/available values](https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView#behavior)). **If this is specified, will use JS scrolling instead of CDP scrolling, which is detectable**. Default is `undefined` (CDP `scrollIntoView`).
-  - `scrollWait (number):` Time to wait after scrolling (when scrolling occurs due to target element being outside the visible window). Default is `200`.
 
 #### `moveTo(destination: Vector, options?: MoveToOptions): Promise<void>`
 
@@ -145,6 +143,16 @@ Moves the mouse to the specified destination point.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
   - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
+  
+#### `scrollIntoView(element: ElementHandle, options?: ScrollOptions) => Promise<void>`
+
+Scrolls the element into view. If already in view, no scroll occurs.
+
+- **element:** ElementHandle to identify the target element.
+- **options (optional):** Additional options for scrolling.
+  - `scrollSpeed (number):` Scroll speed (when scrolling occurs). 0 to 100. 100 is instant. Default is `100`.
+  - `scrollDelay (number):` Time to wait after scrolling (when scrolling occurs). Default is `200`.
+  - `inViewportMargin (number):` Margin (in px) to add around the element when ensuring it is in the viewport. Default is `0`.
 
 #### `getLocation(): Vector`
 
