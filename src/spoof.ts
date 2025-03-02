@@ -40,8 +40,8 @@ export interface ScrollOptions {
   readonly scrollDelay?: number
   /**
    * Margin (in px) to add around the element when ensuring it is in the viewport.
-   * (Does not take effect if `scrollSpeed=100`, or if CDP scroll fails.)
-   * @default 30
+   * (Does not take effect if CDP scroll fails.)
+   * @default 0
    */
   readonly inViewportMargin?: number
 }
@@ -633,12 +633,11 @@ export const createCursor = (
       }
 
       // Add margin around the element
-      const margin = optionsResolved.inViewportMargin
       const marginedBox = {
-        top: elemBox.top - margin,
-        left: elemBox.left - margin,
-        bottom: elemBox.bottom + margin,
-        right: elemBox.right + margin
+        top: elemBox.top - optionsResolved.inViewportMargin,
+        left: elemBox.left - optionsResolved.inViewportMargin,
+        bottom: elemBox.bottom + optionsResolved.inViewportMargin,
+        right: elemBox.right + optionsResolved.inViewportMargin
       }
 
       // Get position relative to the whole document
@@ -734,7 +733,7 @@ export const createCursor = (
           }
         }
 
-        if (scrollSpeed === 100) {
+        if (scrollSpeed === 100 && optionsResolved.inViewportMargin <= 0) {
           try {
             const { objectId } = elem.remoteObject()
             if (objectId === undefined) throw new Error()
