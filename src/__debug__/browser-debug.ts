@@ -14,7 +14,9 @@ const cursorDefaultOptions = {
   moveSpeed: 99,
   hesitate: 100,
   waitForClick: 10,
-  scrollWait: 0
+  scrollDelay: 100,
+  scrollSpeed: 40,
+  inViewportMargin: 50
 } as const satisfies ClickOptions
 
 puppeteer.launch({ headless: false }).then(async (browser) => {
