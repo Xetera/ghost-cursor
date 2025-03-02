@@ -246,8 +246,8 @@ const getElementBox = async (
   }
 }
 
-export function path (point: Vector, target: Vector, options?: number | PathOptions)
-export function path (point: Vector, target: BoundingBox, options?: number | PathOptions)
+export function path (point: Vector, target: Vector, options?: number | PathOptions): Vector[] | TimedVector[]
+export function path (point: Vector, target: BoundingBox, options?: number | PathOptions): Vector[] | TimedVector[]
 export function path (start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] | TimedVector[] {
   const optionsResolved: PathOptions = typeof options === 'number'
     ? { spreadOverride: options }
