@@ -606,20 +606,61 @@ export const createCursor = (
         ...options
       } satisfies ScrollOptions
 
-      const { viewportWidth, viewportHeight } = await page.evaluate(() =>
-        ({ viewportWidth: window.innerWidth, viewportHeight: window.innerHeight })
-      )
+      const {
+        viewportWidth,
+        viewportHeight,
+        docHeight,
+        docWidth,
+        scrollPositionTop,
+        scrollPositionLeft
+      } = await page.evaluate(() => (
+        {
+          viewportWidth: document.body.clientWidth,
+          viewportHeight: document.body.clientHeight,
+          docHeight: document.body.scrollHeight,
+          docWidth: document.body.scrollWidth,
+          scrollPositionTop: window.scrollY,
+          scrollPositionLeft: window.scrollX
+        }
+      ))
 
-      const elemBox = await boundingBoxWithFallback(page, elem)
-      const margin = optionsResolved.inViewportMargin
-      const paddedBox = {
-        top: elemBox.y - margin,
-        left: elemBox.x - margin,
-        bottom: elemBox.y + elemBox.height + margin,
-        right: elemBox.x + elemBox.width + margin
+      const elemBoundingBox = await boundingBoxWithFallback(page, elem) // is relative to viewport
+      const elemBox = {
+        top: elemBoundingBox.y,
+        left: elemBoundingBox.x,
+        bottom: elemBoundingBox.y + elemBoundingBox.height,
+        right: elemBoundingBox.x + elemBoundingBox.width
       }
 
-      const { top, left, bottom, right } = paddedBox
+      // Add margin around the element
+      const margin = optionsResolved.inViewportMargin
+      const marginedBox = {
+        top: elemBox.top - margin,
+        left: elemBox.left - margin,
+        bottom: elemBox.bottom + margin,
+        right: elemBox.right + margin
+      }
+
+      // Get position relative to the whole document
+      const marginedBoxRelativeToDoc = {
+        top: marginedBox.top + scrollPositionTop,
+        left: marginedBox.left + scrollPositionLeft,
+        bottom: marginedBox.bottom + scrollPositionTop,
+        right: marginedBox.right + scrollPositionLeft
+      }
+
+      // Convert back to being relative to the viewport-- though if box with margin added goes outside
+      // the document, restrict to being *within* the document.
+      // This makes it so that when element is on the edge of window scroll, isInViewport=true even after
+      // margin was added.
+      const targetBox = {
+        top: Math.max(marginedBoxRelativeToDoc.top, 0) - scrollPositionTop,
+        left: Math.max(marginedBoxRelativeToDoc.left, 0) - scrollPositionLeft,
+        bottom: Math.min(marginedBoxRelativeToDoc.bottom, docHeight) - scrollPositionTop,
+        right: Math.min(marginedBoxRelativeToDoc.right, docWidth) - scrollPositionLeft
+      }
+
+      const { top, left, bottom, right } = targetBox
 
       const isInViewport = top >= 0 &&
           left >= 0 &&

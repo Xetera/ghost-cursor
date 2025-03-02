@@ -13,7 +13,9 @@ const cursorDefaultOptions = {
   moveSpeed: 99,
   hesitate: 0,
   waitForClick: 0,
-  scrollDelay: 0
+  scrollDelay: 0,
+  scrollSpeed: 99,
+  inViewportMargin: 50
 } as const satisfies ClickOptions
 
 describe('Mouse movements', () => {
@@ -34,11 +36,45 @@ describe('Mouse movements', () => {
   })
 
   it('Should click on the element without throwing an error (CSS selector)', async () => {
-    await cursor.click('#box')
+    await cursor.click('#box1')
   })
 
   it('Should click on the element without throwing an error (XPath selector)', async () => {
-    await cursor.click('//*[@id="box"]')
+    await cursor.click('//*[@id="box1"]')
+  })
+
+  it('Should scroll to elements correctly', async () => {
+    const getScrollPosition = async (): Promise<{ top: number, left: number }> => await page.evaluate(() => (
+      { top: window.scrollY, left: window.scrollX }
+    ))
+
+    const box1 = await page.waitForSelector('#box1')
+    if (box1 == null) throw new Error('box not found')
+    const box2 = await page.waitForSelector('#box2')
+    if (box2 == null) throw new Error('box not found')
+    const box3 = await page.waitForSelector('#box3')
+    if (box3 == null) throw new Error('box not found')
+
+    expect(await getScrollPosition()).toEqual({ top: 0, left: 0 })
+
+    expect(await box1.isIntersectingViewport()).toBeTruthy()
+    await cursor.click(box1)
+    expect(await getScrollPosition()).toEqual({ top: 0, left: 0 })
+    expect(await box1.isIntersectingViewport()).toBeTruthy()
+
+    expect(await box2.isIntersectingViewport()).toBeFalsy()
+    await cursor.move(box2)
+    expect(await getScrollPosition()).toEqual({ top: 2500, left: 0 })
+    expect(await box2.isIntersectingViewport()).toBeTruthy()
+
+    expect(await box3.isIntersectingViewport()).toBeFalsy()
+    await cursor.move(box3)
+    expect(await getScrollPosition()).toEqual({ top: 4450, left: 2250 })
+    expect(await box3.isIntersectingViewport()).toBeTruthy()
+
+    expect(await box1.isIntersectingViewport()).toBeFalsy()
+    await cursor.click(box1)
+    expect(await box1.isIntersectingViewport()).toBeTruthy()
   })
 })
 

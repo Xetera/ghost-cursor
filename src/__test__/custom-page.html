@@ -1,31 +1,43 @@
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
-  </head>
-  <body style="width: 1000px; height: 1000px">
-    <div
-      id="box"
-      style="
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+  <style>
+    .box {
+      background: #eee;
+      transition: all 0.4s;
+      width: 50px;
+      height: 50px;
+      position: absolute;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="box1" class="box" style="
         left: 200;
         top: 40;
-        position: absolute;
-        transition: all 0.4s;
-        width: 50px;
-        height: 50px;
-        background: #eee;
-      "
-    ></div>
-  </body>
-  <script>
-    const box = document.querySelector('#box')
-    setTimeout(() => {
-      box.style.left = Math.random() * 500
-    }, 1000)
-    setTimeout(() => {
-      box.style.top = Math.random() * 500
-    }, 1000)
-  </script>
+      ">Box 1</div>
+  <div id="box2" class="box" style="
+      left: 200;
+      top: 3000;
+    ">Box 2</div>
+  <div id="box3" class="box" style="
+      left: 3000;
+      top: 5000;
+    ">Box 3</div>
+</body>
+<script>
+  const box = document.querySelector('#box1')
+  setTimeout(() => {
+    box.style.left = Math.random() * 500
+  }, 1000)
+  setTimeout(() => {
+    box.style.top = Math.random() * 500
+  }, 1000)
+</script>
+
 </html>
