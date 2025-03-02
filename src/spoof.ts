@@ -9,7 +9,9 @@ import {
   magnitude,
   origin,
   overshoot,
-  add
+  add,
+  clamp,
+  scale
 } from './math'
 export { default as installMouseHelper } from './mouse-helper'
 
@@ -33,7 +35,26 @@ export interface BoxOptions {
   readonly destination?: Vector
 }
 
-export interface MoveOptions extends BoxOptions, Pick<PathOptions, 'moveSpeed'> {
+export interface ScrollOptions {
+  /**
+   * Scroll speed (when scrolling occurs). 0 to 100. 100 is instant.
+   * @default 100
+   */
+  readonly scrollSpeed?: number
+  /**
+   * Time to wait after scrolling (when scrolling occurs).
+   * @default 200
+   */
+  readonly scrollDelay?: number
+  /**
+   * Margin (in px) to add around the element when ensuring it is in the viewport.
+   * (Does not take effect if `scrollSpeed=100`, or if CDP scroll fails.)
+   * @default 30
+   */
+  readonly inViewportMargin?: number
+}
+
+export interface MoveOptions extends BoxOptions, ScrollOptions, Pick<PathOptions, 'moveSpeed'> {
   /**
    * Time to wait for the selector to appear in milliseconds.
    * Default is to not wait for selector.
@@ -60,21 +81,6 @@ export interface MoveOptions extends BoxOptions, Pick<PathOptions, 'moveSpeed'> 
    * @default 500
    */
   readonly overshootThreshold?: number
-  /**
-   * Scroll behavior when target element is outside the visible window.
-   *
-   * {@link https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView#behavior}
-   *
-   * NOTE: If this is specified, will use JS scrolling instead of CDP scrolling, which is detectable!
-   *
-   * @default undefined (use CDP scrolling)
-   */
-  readonly scrollBehavior?: ScrollBehavior
-  /**
-   * Time to wait after scrolling (when scrolling occurs due to target element being outside the visible window)
-   * @default 200
-   */
-  readonly scrollWait?: number
 }
 
 export interface ClickOptions extends MoveOptions {
@@ -136,6 +142,7 @@ export interface GhostCursor {
     options?: MoveOptions
   ) => Promise<void>
   moveTo: (destination: Vector, options?: MoveToOptions) => Promise<void>
+  scrollIntoView: (selector: ElementHandle, options?: ScrollOptions) => Promise<void>
   getLocation: () => Vector
 }
 
@@ -247,8 +254,8 @@ const getElementBox = async (
   }
 }
 
-export function path (point: Vector, target: Vector, options?: number | PathOptions)
-export function path (point: Vector, target: BoundingBox, options?: number | PathOptions)
+export function path (point: Vector, target: Vector, options?: number | PathOptions): Vector[] | TimedVector[]
+export function path (point: Vector, target: BoundingBox, options?: number | PathOptions): Vector[] | TimedVector[]
 export function path (start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] | TimedVector[] {
   const optionsResolved: PathOptions = typeof options === 'number'
     ? { spreadOverride: options }
@@ -431,8 +438,8 @@ export const createCursor = (
       }
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
       randomMove(options).then(
-        (_) => {},
-        (_) => {}
+        (_) => { },
+        (_) => { }
       ) // fire and forget, recursive function
     } catch (_) {
       log('Warning: stopping random mouse movements')
@@ -495,7 +502,6 @@ export const createCursor = (
         maxTries: 10,
         overshootThreshold: 500,
         randomizeMoveDelay: true,
-        scrollWait: 200,
         ...defaultOptions?.move,
         ...options
       } satisfies MoveOptions
@@ -538,31 +544,7 @@ export const createCursor = (
         }
 
         // Make sure the object is in view
-        if (!(await elem.isIntersectingViewport())) {
-          const scrollElemIntoView = async (): Promise<void> =>
-            await elem.evaluate((e, scrollBehavior) => e.scrollIntoView({
-              block: 'center',
-              behavior: scrollBehavior
-            }), optionsResolved.scrollBehavior)
-
-          if (optionsResolved.scrollBehavior !== undefined) {
-            // DOM.scrollIntoViewIfNeeded is instant scroll, so do the JS scroll if scrollBehavior passed
-            await scrollElemIntoView()
-          } else {
-            try {
-              const { objectId } = elem.remoteObject()
-              if (objectId === undefined) throw new Error()
-              await getCDPClient(page).send('DOM.scrollIntoViewIfNeeded', {
-                objectId
-              })
-            } catch (e) {
-            // use regular JS scroll method as a fallback
-              log('Falling back to JS scroll method', e)
-              await scrollElemIntoView()
-            }
-          }
-          await delay(optionsResolved.scrollWait)
-        }
+        await this.scrollIntoView(elem, optionsResolved)
 
         const box = await boundingBoxWithFallback(page, elem)
         const { height, width } = box
@@ -624,14 +606,173 @@ export const createCursor = (
       actions.toggleRandomMove(wasRandom)
 
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+    },
+
+    async scrollIntoView (elem: ElementHandle, options?: ScrollOptions): Promise<void> {
+      const optionsResolved = {
+        scrollSpeed: 100,
+        scrollDelay: 200,
+        inViewportMargin: 0,
+        ...options
+      } satisfies ScrollOptions
+
+      const {
+        viewportWidth,
+        viewportHeight,
+        docHeight,
+        docWidth,
+        scrollPositionTop,
+        scrollPositionLeft
+      } = await page.evaluate(() => (
+        {
+          viewportWidth: document.body.clientWidth,
+          viewportHeight: document.body.clientHeight,
+          docHeight: document.body.scrollHeight,
+          docWidth: document.body.scrollWidth,
+          scrollPositionTop: window.scrollY,
+          scrollPositionLeft: window.scrollX
+        }
+      ))
+
+      const elemBoundingBox = await boundingBoxWithFallback(page, elem) // is relative to viewport
+      const elemBox = {
+        top: elemBoundingBox.y,
+        left: elemBoundingBox.x,
+        bottom: elemBoundingBox.y + elemBoundingBox.height,
+        right: elemBoundingBox.x + elemBoundingBox.width
+      }
+
+      // Add margin around the element
+      const margin = optionsResolved.inViewportMargin
+      const marginedBox = {
+        top: elemBox.top - margin,
+        left: elemBox.left - margin,
+        bottom: elemBox.bottom + margin,
+        right: elemBox.right + margin
+      }
+
+      // Get position relative to the whole document
+      const marginedBoxRelativeToDoc = {
+        top: marginedBox.top + scrollPositionTop,
+        left: marginedBox.left + scrollPositionLeft,
+        bottom: marginedBox.bottom + scrollPositionTop,
+        right: marginedBox.right + scrollPositionLeft
+      }
+
+      // Convert back to being relative to the viewport-- though if box with margin added goes outside
+      // the document, restrict to being *within* the document.
+      // This makes it so that when element is on the edge of window scroll, isInViewport=true even after
+      // margin was added.
+      const targetBox = {
+        top: Math.max(marginedBoxRelativeToDoc.top, 0) - scrollPositionTop,
+        left: Math.max(marginedBoxRelativeToDoc.left, 0) - scrollPositionLeft,
+        bottom: Math.min(marginedBoxRelativeToDoc.bottom, docHeight) - scrollPositionTop,
+        right: Math.min(marginedBoxRelativeToDoc.right, docWidth) - scrollPositionLeft
+      }
+
+      const { top, left, bottom, right } = targetBox
+
+      const isInViewport = top >= 0 &&
+          left >= 0 &&
+          bottom <= viewportHeight &&
+          right <= viewportWidth
+
+      if (isInViewport) return
+
+      const scrollSpeed = clamp(optionsResolved.scrollSpeed, 1, 100)
+
+      try {
+        const cdpClient = getCDPClient(page)
+
+        const manuallyScroll = async (): Promise<void> => {
+          let deltaY: number = 0
+          let deltaX: number = 0
+
+          if (top < 0) {
+            deltaY = top // Scroll up
+          } else if (bottom > viewportHeight) {
+            deltaY = bottom - viewportHeight // Scroll down
+          }
+
+          if (left < 0) {
+            deltaX = left // Scroll left
+          } else if (right > viewportWidth) {
+            deltaX = right - viewportWidth// Scroll right
+          }
+
+          const xDirection = deltaX < 0 ? -1 : 1
+          const yDirection = deltaY < 0 ? -1 : 1
+
+          deltaX = Math.abs(deltaX)
+          deltaY = Math.abs(deltaY)
+
+          const largerDistanceDir = deltaX > deltaY ? 'x' : 'y'
+          const [largerDistance, shorterDistance] = largerDistanceDir === 'x' ? [deltaX, deltaY] : [deltaY, deltaX]
+
+          // When scrollSpeed under 90, pixels moved each scroll is equal to the scrollSpeed. 1 is as slow as we can get (without adding a delay), and 90 is pretty fast.
+          // Above 90 though, scale all the way to the full distance so that scrollSpeed=100 results in only 1 scroll action.
+          const EXP_SCALE_START = 90
+          const largerDistanceScrollStep = scrollSpeed < EXP_SCALE_START
+            ? scrollSpeed
+            : scale(scrollSpeed, [EXP_SCALE_START, 100], [EXP_SCALE_START, largerDistance])
+
+          const numSteps = Math.floor(largerDistance / largerDistanceScrollStep)
+          const largerDistanceRemainder = largerDistance % largerDistanceScrollStep
+          const shorterDistanceScrollStep = Math.floor(shorterDistance / numSteps)
+          const shorterDistanceRemainder = shorterDistance % numSteps
+
+          for (let i = 0; i < numSteps; i++) {
+            let longerDistanceDelta = largerDistanceScrollStep
+            let shorterDistanceDelta = shorterDistanceScrollStep
+            if (i === numSteps - 1) {
+              longerDistanceDelta += largerDistanceRemainder
+              shorterDistanceDelta += shorterDistanceRemainder
+            }
+            let [deltaX, deltaY] = largerDistanceDir === 'x'
+              ? [longerDistanceDelta, shorterDistanceDelta]
+              : [shorterDistanceDelta, longerDistanceDelta]
+            deltaX = deltaX * xDirection
+            deltaY = deltaY * yDirection
+
+            await cdpClient.send('Input.dispatchMouseEvent', {
+              type: 'mouseWheel',
+              deltaX,
+              deltaY,
+              x: 0,
+              y: 0
+            } satisfies Protocol.Input.DispatchMouseEventRequest)
+          }
+        }
+
+        if (scrollSpeed === 100) {
+          try {
+            const { objectId } = elem.remoteObject()
+            if (objectId === undefined) throw new Error()
+            await cdpClient.send('DOM.scrollIntoViewIfNeeded', { objectId })
+          } catch {
+            await manuallyScroll()
+          }
+        } else {
+          await manuallyScroll()
+        }
+      } catch (e) {
+        // use regular JS scroll method as a fallback
+        log('Falling back to JS scroll method', e)
+        await elem.evaluate((e) => e.scrollIntoView({
+          block: 'center',
+          behavior: scrollSpeed < 90 ? 'smooth' : undefined
+        }))
+      }
+
+      await delay(optionsResolved.scrollDelay)
     }
   }
 
   // Start random mouse movements. Do not await the promise but return immediately
   if (performRandomMoves) {
     randomMove().then(
-      (_) => {},
-      (_) => {}
+      (_) => { },
+      (_) => { }
     )
   }
 

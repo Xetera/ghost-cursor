@@ -15,6 +15,9 @@ export const div = (a: Vector, b: number): Vector => ({ x: a.x / b, y: a.y / b }
 export const mult = (a: Vector, b: number): Vector => ({ x: a.x * b, y: a.y * b })
 export const add = (a: Vector, b: Vector): Vector => ({ x: a.x + b.x, y: a.y + b.y })
 
+export const scale = (value: number, range1: [number, number], range2: [number, number]): number =>
+  (value - range1[0]) * (range2[1] - range2[0]) / (range1[1] - range1[0]) + range2[0]
+
 export const direction = (a: Vector, b: Vector): Vector => sub(b, a)
 export const perpendicular = (a: Vector): Vector => ({ x: a.y, y: -1 * a.x })
 export const magnitude = (a: Vector): number =>
@@ -56,7 +59,7 @@ export const generateBezierAnchors = (
   return [calc(), calc()].sort((a, b) => a.x - b.x) as [Vector, Vector]
 }
 
-const clamp = (target: number, min: number, max: number): number =>
+export const clamp = (target: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, target))
 
 export const overshoot = (coordinate: Vector, radius: number): Vector => {
