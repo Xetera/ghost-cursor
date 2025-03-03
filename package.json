@@ -34,8 +34,9 @@
     "@types/jest": "29",
     "husky": "9",
     "jest": "29",
-    "jest-puppeteer": "10",
-    "puppeteer": "23",
+    "jest-puppeteer": "11",
+    "puppeteer": "24",
+    "ts-node": "^10.9.2",
     "ts-standard": "12",
     "typescript": "5"
   },
