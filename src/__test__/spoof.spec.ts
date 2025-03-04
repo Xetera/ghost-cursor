@@ -19,6 +19,7 @@ const cursorDefaultOptions = {
 } as const satisfies ClickOptions
 
 declare global {
+  // eslint-disable-next-line no-var
   var boxWasClicked: boolean
 }
 
