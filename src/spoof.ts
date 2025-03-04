@@ -417,7 +417,7 @@ export const createCursor = (
         // Exit function if the browser is no longer connected
         if (!page.browser().isConnected()) return
 
-        log('Warning: could not move mouse, error message:', error)
+        log('Warning: Could not move mouse. Error message: ', error)
       }
     }
   }
@@ -485,7 +485,14 @@ export const createCursor = (
         await delay(optionsResolved.waitForClick)
         await page.mouse.up()
       } catch (error) {
-        log('Warning: could not click mouse, error message:', error)
+        // use JS click method as a fallback
+        log('Warning: Could not click mouse using CDP. Falling back to JS click method. Error message: ', error)
+        await page.evaluate(() => {
+          const element = document.elementFromPoint(previous.x, previous.y) as HTMLElement | null
+          if (element != null) {
+            element.click()
+          }
+        })
       }
 
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
@@ -672,9 +679,9 @@ export const createCursor = (
       const { top, left, bottom, right } = targetBox
 
       const isInViewport = top >= 0 &&
-          left >= 0 &&
-          bottom <= viewportHeight &&
-          right <= viewportWidth
+        left >= 0 &&
+        bottom <= viewportHeight &&
+        right <= viewportWidth
 
       if (isInViewport) return
 
@@ -754,9 +761,9 @@ export const createCursor = (
         } else {
           await manuallyScroll()
         }
-      } catch (e) {
+      } catch (error) {
         // use regular JS scroll method as a fallback
-        log('Falling back to JS scroll method', e)
+        log('Warning: Could not scroll using CDP. Falling back to JS scroll method. Error message: ', error)
         await elem.evaluate((e) => e.scrollIntoView({
           block: 'center',
           behavior: scrollSpeed < 90 ? 'smooth' : undefined
