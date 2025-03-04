@@ -131,6 +131,9 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
   readonly moveDelay?: number
 }
 
+export interface ScrollToOptions extends Pick<ScrollOptions, 'scrollDelay'>, Pick<globalThis.ScrollOptions, 'behavior'> {
+}
+
 export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
   click: (
@@ -141,8 +144,15 @@ export interface GhostCursor {
     selector: string | ElementHandle,
     options?: MoveOptions
   ) => Promise<void>
-  moveTo: (destination: Vector, options?: MoveToOptions) => Promise<void>
-  scrollIntoView: (selector: ElementHandle, options?: ScrollOptions) => Promise<void>
+  moveTo: (
+    destination: Vector,
+    options?: MoveToOptions) => Promise<void>
+  scrollIntoView: (
+    selector: ElementHandle,
+    options?: ScrollOptions) => Promise<void>
+  scrollTo: (
+    destination: Partial<Vector> | 'top' | 'bottom',
+    options?: ScrollToOptions) => Promise<void>
   getLocation: () => Vector
 }
 
@@ -378,6 +388,11 @@ export const createCursor = (
      * @default ClickOptions
      */
     click?: ClickOptions
+    /**
+   * Default options for the `scrollIntoView` function
+   * @default ScrollOptions
+   */
+    scrollIntoView?: ScrollOptions
   } = {}
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
@@ -613,6 +628,7 @@ export const createCursor = (
         scrollSpeed: 100,
         scrollDelay: 200,
         inViewportMargin: 0,
+        ...defaultOptions?.scrollIntoView,
         ...options
       } satisfies ScrollOptions
 
@@ -672,9 +688,9 @@ export const createCursor = (
       const { top, left, bottom, right } = targetBox
 
       const isInViewport = top >= 0 &&
-          left >= 0 &&
-          bottom <= viewportHeight &&
-          right <= viewportWidth
+        left >= 0 &&
+        bottom <= viewportHeight &&
+        right <= viewportWidth
 
       if (isInViewport) return
 
@@ -763,6 +779,33 @@ export const createCursor = (
         }))
       }
 
+      await delay(optionsResolved.scrollDelay)
+    },
+
+    async scrollTo (destination: Partial<Vector> | 'top' | 'bottom', options?: ScrollToOptions) {
+      const optionsResolved = {
+        scrollDelay: 200,
+        ...options
+      } satisfies ScrollToOptions
+
+      await page.evaluate(
+        (destination) => {
+          const to: { top?: number, left?: number } = destination === 'top'
+            ? { top: 0 }
+            : destination === 'bottom'
+              ? { top: document.body.scrollHeight }
+              : { top: destination.y, left: destination.x }
+
+          window.scrollTo({
+            behavior: optionsResolved.behavior ?? (defaultOptions?.scrollIntoView?.scrollSpeed !== undefined &&
+              defaultOptions?.scrollIntoView?.scrollSpeed < 90
+              ? 'smooth'
+              : undefined),
+            ...to
+          })
+        },
+        destination
+      )
       await delay(optionsResolved.scrollDelay)
     }
   }
