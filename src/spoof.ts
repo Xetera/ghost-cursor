@@ -481,9 +481,16 @@ export const createCursor = (
 
       try {
         await delay(optionsResolved.hesitate)
-        await page.mouse.down()
+
+        const cdpClient = getCDPClient(page)
+        const dispatchParams: Omit<Protocol.Input.DispatchMouseEventRequest, 'type'> = {
+          ...previous,
+          button: 'left',
+          clickCount: 1
+        }
+        await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mousePressed' })
         await delay(optionsResolved.waitForClick)
-        await page.mouse.up()
+        await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mouseReleased' })
       } catch (error) {
         log('Warning: could not click mouse, error message:', error)
       }
