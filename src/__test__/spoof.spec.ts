@@ -1,7 +1,7 @@
-import type { Page } from 'puppeteer'
+import type { ElementHandle, Page } from 'puppeteer'
 import { type ClickOptions, createCursor, GhostCursor } from '../spoof'
 import { join } from 'path'
-import { promises as fs } from 'fs'
+import { readFileSync } from 'fs'
 import installMouseHelper from '../mouse-helper'
 
 declare const page: Page
@@ -18,16 +18,22 @@ const cursorDefaultOptions = {
   inViewportMargin: 50
 } as const satisfies ClickOptions
 
+declare global {
+  var boxWasClicked: boolean
+}
+
 describe('Mouse movements', () => {
+  const html = readFileSync(join(__dirname, 'custom-page.html'), 'utf8')
+
   beforeAll(async () => {
     await installMouseHelper(page)
-    const html = await fs.readFile(join(__dirname, 'custom-page.html'), 'utf8')
+  })
+
+  beforeEach(async () => {
     await page.goto('data:text/html,' + encodeURIComponent(html), {
       waitUntil: 'networkidle2'
     })
-  })
 
-  beforeEach(() => {
     cursor = createCursor(page, undefined, undefined, {
       move: cursorDefaultOptions,
       click: cursorDefaultOptions,
@@ -35,12 +41,18 @@ describe('Mouse movements', () => {
     })
   })
 
+  const testClick = async (clickSelector: string): Promise<void> => {
+    expect(await page.evaluate(() => window.boxWasClicked)).toEqual(false)
+    await cursor.click(clickSelector)
+    expect(await page.evaluate(() => window.boxWasClicked)).toEqual(true)
+  }
+
   it('Should click on the element without throwing an error (CSS selector)', async () => {
-    await cursor.click('#box1')
+    await testClick('#box1')
   })
 
   it('Should click on the element without throwing an error (XPath selector)', async () => {
-    await cursor.click('//*[@id="box1"]')
+    await testClick('//*[@id="box1"]')
   })
 
   it('Should scroll to elements correctly', async () => {
@@ -48,33 +60,33 @@ describe('Mouse movements', () => {
       { top: window.scrollY, left: window.scrollX }
     ))
 
-    const box1 = await page.waitForSelector('#box1')
-    if (box1 == null) throw new Error('box not found')
-    const box2 = await page.waitForSelector('#box2')
-    if (box2 == null) throw new Error('box not found')
-    const box3 = await page.waitForSelector('#box3')
-    if (box3 == null) throw new Error('box not found')
+    const boxes = await Promise.all([1, 2, 3].map(async (number: number): Promise<ElementHandle<HTMLElement>> => {
+      const selector = `#box${number}`
+      const box = await page.waitForSelector(selector) as ElementHandle<HTMLElement> | null
+      if (box == null) throw new Error(`${selector} not found`)
+      return box
+    }))
 
     expect(await getScrollPosition()).toEqual({ top: 0, left: 0 })
 
-    expect(await box1.isIntersectingViewport()).toBeTruthy()
-    await cursor.click(box1)
+    expect(await boxes[0].isIntersectingViewport()).toBeTruthy()
+    await cursor.click(boxes[0])
     expect(await getScrollPosition()).toEqual({ top: 0, left: 0 })
-    expect(await box1.isIntersectingViewport()).toBeTruthy()
+    expect(await boxes[0].isIntersectingViewport()).toBeTruthy()
 
-    expect(await box2.isIntersectingViewport()).toBeFalsy()
-    await cursor.move(box2)
+    expect(await boxes[1].isIntersectingViewport()).toBeFalsy()
+    await cursor.move(boxes[1])
     expect(await getScrollPosition()).toEqual({ top: 2500, left: 0 })
-    expect(await box2.isIntersectingViewport()).toBeTruthy()
+    expect(await boxes[1].isIntersectingViewport()).toBeTruthy()
 
-    expect(await box3.isIntersectingViewport()).toBeFalsy()
-    await cursor.move(box3)
+    expect(await boxes[2].isIntersectingViewport()).toBeFalsy()
+    await cursor.move(boxes[2])
     expect(await getScrollPosition()).toEqual({ top: 4450, left: 2250 })
-    expect(await box3.isIntersectingViewport()).toBeTruthy()
+    expect(await boxes[2].isIntersectingViewport()).toBeTruthy()
 
-    expect(await box1.isIntersectingViewport()).toBeFalsy()
-    await cursor.click(box1)
-    expect(await box1.isIntersectingViewport()).toBeTruthy()
+    expect(await boxes[0].isIntersectingViewport()).toBeFalsy()
+    await cursor.click(boxes[0])
+    expect(await boxes[0].isIntersectingViewport()).toBeTruthy()
   })
 })
 
