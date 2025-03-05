@@ -43,7 +43,20 @@ export interface GetElementOptions {
   readonly waitForSelector?: number
 }
 
-export interface ScrollOptions extends GetElementOptions {
+export interface ScrollOptions {
+  /**
+   * Scroll speed. 0 to 100. 100 is instant.
+   * @default 100
+   */
+  readonly scrollSpeed?: number
+  /**
+ * Time to wait after scrolling.
+ * @default 200
+ */
+  readonly scrollDelay?: number
+}
+
+export interface ScrollIntoViewOptions extends ScrollOptions, GetElementOptions {
   /**
    * Scroll speed (when scrolling occurs). 0 to 100. 100 is instant.
    * @default 100
@@ -62,7 +75,7 @@ export interface ScrollOptions extends GetElementOptions {
   readonly inViewportMargin?: number
 }
 
-export interface MoveOptions extends BoxOptions, ScrollOptions, Pick<PathOptions, 'moveSpeed'> {
+export interface MoveOptions extends BoxOptions, ScrollIntoViewOptions, Pick<PathOptions, 'moveSpeed'> {
   /**
    * Delay after moving the mouse in milliseconds. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
    * @default 0
@@ -134,6 +147,8 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
   readonly moveDelay?: number
 }
 
+export type ScrollToDestination = Partial<Vector> | 'top' | 'bottom' | 'left' | 'right'
+
 export interface GhostCursor {
   toggleRandomMove: (random: boolean) => void
   click: (
@@ -148,7 +163,13 @@ export interface GhostCursor {
     destination: Vector,
     options?: MoveToOptions) => Promise<void>
   scrollIntoView: (
-    selector: string | ElementHandle,
+    selector: ElementHandle,
+    options?: ScrollIntoViewOptions) => Promise<void>
+  scrollTo: (
+    destination: ScrollToDestination,
+    options?: ScrollOptions) => Promise<void>
+  scroll: (
+    delta: Partial<Vector>,
     options?: ScrollOptions) => Promise<void>
   getElement: (
     selector: string | ElementHandle,
@@ -389,10 +410,10 @@ export const createCursor = (
      */
     click?: ClickOptions
     /**
-    * Default options for the `scrollIntoView` function
-    * @default ScrollOptions
+    * Default options for the `scrollIntoView`, `scrollTo`, and `scroll` functions
+    * @default ScrollIntoViewOptions
     */
-    scrollIntoView?: ScrollOptions
+    scroll?: ScrollOptions & ScrollIntoViewOptions
     /**
      * Default options for the `getElement` function
      * @default GetElementOptions
@@ -609,14 +630,16 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
-    async scrollIntoView (selector: string | ElementHandle, options?: ScrollOptions): Promise<void> {
+    async scrollIntoView (selector: string | ElementHandle, options?: ScrollIntoViewOptions): Promise<void> {
       const optionsResolved = {
-        scrollSpeed: 100,
         scrollDelay: 200,
+        scrollSpeed: 100,
         inViewportMargin: 0,
-        ...defaultOptions?.scrollIntoView,
+        ...defaultOptions?.scroll,
         ...options
-      } satisfies ScrollOptions
+      } satisfies ScrollIntoViewOptions
+
+      const scrollSpeed = clamp(optionsResolved.scrollSpeed, 1, 100)
 
       const elem = await this.getElement(selector, optionsResolved)
 
@@ -682,70 +705,27 @@ export const createCursor = (
 
       if (isInViewport) return
 
-      const scrollSpeed = clamp(optionsResolved.scrollSpeed, 1, 100)
+      const manuallyScroll = async (): Promise<void> => {
+        let deltaY: number = 0
+        let deltaX: number = 0
+
+        if (top < 0) {
+          deltaY = top // Scroll up
+        } else if (bottom > viewportHeight) {
+          deltaY = bottom - viewportHeight // Scroll down
+        }
+
+        if (left < 0) {
+          deltaX = left // Scroll left
+        } else if (right > viewportWidth) {
+          deltaX = right - viewportWidth// Scroll right
+        }
+
+        await this.scroll({ x: deltaX, y: deltaY }, optionsResolved)
+      }
 
       try {
         const cdpClient = getCDPClient(page)
-
-        const manuallyScroll = async (): Promise<void> => {
-          let deltaY: number = 0
-          let deltaX: number = 0
-
-          if (top < 0) {
-            deltaY = top // Scroll up
-          } else if (bottom > viewportHeight) {
-            deltaY = bottom - viewportHeight // Scroll down
-          }
-
-          if (left < 0) {
-            deltaX = left // Scroll left
-          } else if (right > viewportWidth) {
-            deltaX = right - viewportWidth// Scroll right
-          }
-
-          const xDirection = deltaX < 0 ? -1 : 1
-          const yDirection = deltaY < 0 ? -1 : 1
-
-          deltaX = Math.abs(deltaX)
-          deltaY = Math.abs(deltaY)
-
-          const largerDistanceDir = deltaX > deltaY ? 'x' : 'y'
-          const [largerDistance, shorterDistance] = largerDistanceDir === 'x' ? [deltaX, deltaY] : [deltaY, deltaX]
-
-          // When scrollSpeed under 90, pixels moved each scroll is equal to the scrollSpeed. 1 is as slow as we can get (without adding a delay), and 90 is pretty fast.
-          // Above 90 though, scale all the way to the full distance so that scrollSpeed=100 results in only 1 scroll action.
-          const EXP_SCALE_START = 90
-          const largerDistanceScrollStep = scrollSpeed < EXP_SCALE_START
-            ? scrollSpeed
-            : scale(scrollSpeed, [EXP_SCALE_START, 100], [EXP_SCALE_START, largerDistance])
-
-          const numSteps = Math.floor(largerDistance / largerDistanceScrollStep)
-          const largerDistanceRemainder = largerDistance % largerDistanceScrollStep
-          const shorterDistanceScrollStep = Math.floor(shorterDistance / numSteps)
-          const shorterDistanceRemainder = shorterDistance % numSteps
-
-          for (let i = 0; i < numSteps; i++) {
-            let longerDistanceDelta = largerDistanceScrollStep
-            let shorterDistanceDelta = shorterDistanceScrollStep
-            if (i === numSteps - 1) {
-              longerDistanceDelta += largerDistanceRemainder
-              shorterDistanceDelta += shorterDistanceRemainder
-            }
-            let [deltaX, deltaY] = largerDistanceDir === 'x'
-              ? [longerDistanceDelta, shorterDistanceDelta]
-              : [shorterDistanceDelta, longerDistanceDelta]
-            deltaX = deltaX * xDirection
-            deltaY = deltaY * yDirection
-
-            await cdpClient.send('Input.dispatchMouseEvent', {
-              type: 'mouseWheel',
-              deltaX,
-              deltaY,
-              x: 0,
-              y: 0
-            } satisfies Protocol.Input.DispatchMouseEventRequest)
-          }
-        }
 
         if (scrollSpeed === 100 && optionsResolved.inViewportMargin <= 0) {
           try {
@@ -766,8 +746,109 @@ export const createCursor = (
           behavior: scrollSpeed < 90 ? 'smooth' : undefined
         }))
       }
+    },
+
+    async scroll (delta: Partial<Vector>, options?: ScrollOptions) {
+      const optionsResolved = {
+        scrollDelay: 200,
+        scrollSpeed: 100,
+        ...defaultOptions?.scroll,
+        ...options
+      } satisfies ScrollOptions
+
+      const scrollSpeed = clamp(optionsResolved.scrollSpeed, 1, 100)
+
+      const cdpClient = getCDPClient(page)
+
+      let deltaX = delta.x ?? 0
+      let deltaY = delta.y ?? 0
+      const xDirection = deltaX < 0 ? -1 : 1
+      const yDirection = deltaY < 0 ? -1 : 1
+
+      deltaX = Math.abs(deltaX)
+      deltaY = Math.abs(deltaY)
+
+      const largerDistanceDir = deltaX > deltaY ? 'x' : 'y'
+      const [largerDistance, shorterDistance] = largerDistanceDir === 'x' ? [deltaX, deltaY] : [deltaY, deltaX]
+
+      // When scrollSpeed under 90, pixels moved each scroll is equal to the scrollSpeed. 1 is as slow as we can get (without adding a delay), and 90 is pretty fast.
+      // Above 90 though, scale all the way to the full distance so that scrollSpeed=100 results in only 1 scroll action.
+      const EXP_SCALE_START = 90
+      const largerDistanceScrollStep = scrollSpeed < EXP_SCALE_START
+        ? scrollSpeed
+        : scale(scrollSpeed, [EXP_SCALE_START, 100], [EXP_SCALE_START, largerDistance])
+
+      const numSteps = Math.floor(largerDistance / largerDistanceScrollStep)
+      const largerDistanceRemainder = largerDistance % largerDistanceScrollStep
+      const shorterDistanceScrollStep = Math.floor(shorterDistance / numSteps)
+      const shorterDistanceRemainder = shorterDistance % numSteps
+
+      for (let i = 0; i < numSteps; i++) {
+        let longerDistanceDelta = largerDistanceScrollStep
+        let shorterDistanceDelta = shorterDistanceScrollStep
+        if (i === numSteps - 1) {
+          longerDistanceDelta += largerDistanceRemainder
+          shorterDistanceDelta += shorterDistanceRemainder
+        }
+        let [deltaX, deltaY] = largerDistanceDir === 'x'
+          ? [longerDistanceDelta, shorterDistanceDelta]
+          : [shorterDistanceDelta, longerDistanceDelta]
+        deltaX = deltaX * xDirection
+        deltaY = deltaY * yDirection
+
+        await cdpClient.send('Input.dispatchMouseEvent', {
+          type: 'mouseWheel',
+          deltaX,
+          deltaY,
+          x: previous.x,
+          y: previous.y
+        } satisfies Protocol.Input.DispatchMouseEventRequest)
+      }
 
       await delay(optionsResolved.scrollDelay)
+    },
+
+    async scrollTo (destination: ScrollToDestination, options?: ScrollOptions) {
+      const optionsResolved = {
+        scrollDelay: 200,
+        scrollSpeed: 100,
+        ...defaultOptions?.scroll,
+        ...options
+      } satisfies ScrollOptions
+
+      const {
+        docHeight,
+        docWidth,
+        scrollPositionTop,
+        scrollPositionLeft
+      } = await page.evaluate(() => (
+        {
+          docHeight: document.body.scrollHeight,
+          docWidth: document.body.scrollWidth,
+          scrollPositionTop: window.scrollY,
+          scrollPositionLeft: window.scrollX
+        }
+      ))
+
+      const to = ((): Partial<Vector> => {
+        switch (destination) {
+          case 'top':
+            return { y: 0 }
+          case 'bottom':
+            return { y: docHeight }
+          case 'left':
+            return { x: 0 }
+          case 'right':
+            return { x: docWidth }
+          default:
+            return destination
+        }
+      })()
+
+      await this.scroll({
+        y: to.y !== undefined ? to.y - scrollPositionTop : 0,
+        x: to.x !== undefined ? to.x - scrollPositionLeft : 0
+      }, optionsResolved)
     },
 
     async getElement (selector: string | ElementHandle, options?: GetElementOptions): Promise<ElementHandle<Element>> {
