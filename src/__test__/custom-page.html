@@ -38,6 +38,10 @@
   setTimeout(() => {
     box.style.top = Math.random() * 500
   }, 1000)
+  window.boxWasClicked = false
+  box.addEventListener('click', () => {
+    window.boxWasClicked = true
+  })
 </script>
 
 </html>

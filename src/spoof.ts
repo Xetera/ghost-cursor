@@ -35,7 +35,15 @@ export interface BoxOptions {
   readonly destination?: Vector
 }
 
-export interface ScrollOptions {
+export interface GetElementOptions {
+  /**
+   * Time to wait for the selector to appear in milliseconds.
+   * Default is to not wait for selector.
+   */
+  readonly waitForSelector?: number
+}
+
+export interface ScrollOptions extends GetElementOptions {
   /**
    * Scroll speed (when scrolling occurs). 0 to 100. 100 is instant.
    * @default 100
@@ -55,11 +63,6 @@ export interface ScrollOptions {
 }
 
 export interface MoveOptions extends BoxOptions, ScrollOptions, Pick<PathOptions, 'moveSpeed'> {
-  /**
-   * Time to wait for the selector to appear in milliseconds.
-   * Default is to not wait for selector.
-   */
-  readonly waitForSelector?: number
   /**
    * Delay after moving the mouse in milliseconds. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
    * @default 0
@@ -153,6 +156,9 @@ export interface GhostCursor {
   scrollTo: (
     destination: Partial<Vector> | 'top' | 'bottom',
     options?: ScrollToOptions) => Promise<void>
+  getElement: (
+    selector: string | ElementHandle,
+    options?: GetElementOptions) => Promise<ElementHandle<Element>>
   getLocation: () => Vector
 }
 
@@ -389,10 +395,15 @@ export const createCursor = (
      */
     click?: ClickOptions
     /**
-   * Default options for the `scrollIntoView` function
-   * @default ScrollOptions
-   */
+    * Default options for the `scrollIntoView` function
+    * @default ScrollOptions
+    */
     scrollIntoView?: ScrollOptions
+    /**
+     * Default options for the `getElement` function
+     * @default GetElementOptions
+     */
+    getElement?: GetElementOptions
   } = {}
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
@@ -496,9 +507,16 @@ export const createCursor = (
 
       try {
         await delay(optionsResolved.hesitate)
-        await page.mouse.down()
+
+        const cdpClient = getCDPClient(page)
+        const dispatchParams: Omit<Protocol.Input.DispatchMouseEventRequest, 'type'> = {
+          ...previous,
+          button: 'left',
+          clickCount: 1
+        }
+        await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mousePressed' })
         await delay(optionsResolved.waitForClick)
-        await page.mouse.up()
+        await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mouseReleased' })
       } catch (error) {
         log('Warning: could not click mouse, error message:', error)
       }
@@ -529,34 +547,8 @@ export const createCursor = (
         }
 
         actions.toggleRandomMove(false)
-        let elem: ElementHandle<Element> | null = null
-        if (typeof selector === 'string') {
-          if (selector.startsWith('//') || selector.startsWith('(//')) {
-            selector = `xpath/.${selector}`
-            if (optionsResolved.waitForSelector !== undefined) {
-              await page.waitForSelector(selector, {
-                timeout: optionsResolved.waitForSelector
-              })
-            }
-            const [handle] = await page.$$(selector)
-            elem = handle.asElement() as ElementHandle<Element>
-          } else {
-            if (optionsResolved.waitForSelector !== undefined) {
-              await page.waitForSelector(selector, {
-                timeout: optionsResolved.waitForSelector
-              })
-            }
-            elem = await page.$(selector)
-          }
-          if (elem === null) {
-            throw new Error(
-              `Could not find element with selector "${selector}", make sure you're waiting for the elements by specifying "waitForSelector"`
-            )
-          }
-        } else {
-          // ElementHandle
-          elem = selector
-        }
+
+        const elem = await this.getElement(selector, optionsResolved)
 
         // Make sure the object is in view
         await this.scrollIntoView(elem, optionsResolved)
@@ -623,7 +615,7 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
-    async scrollIntoView (elem: ElementHandle, options?: ScrollOptions): Promise<void> {
+    async scrollIntoView (selector: string | ElementHandle, options?: ScrollOptions): Promise<void> {
       const optionsResolved = {
         scrollSpeed: 100,
         scrollDelay: 200,
@@ -631,6 +623,8 @@ export const createCursor = (
         ...defaultOptions?.scrollIntoView,
         ...options
       } satisfies ScrollOptions
+
+      const elem = await this.getElement(selector, optionsResolved)
 
       const {
         viewportWidth,
@@ -807,6 +801,39 @@ export const createCursor = (
         destination
       )
       await delay(optionsResolved.scrollDelay)
+    },
+
+    async getElement (selector: string | ElementHandle, options?: GetElementOptions): Promise<ElementHandle<Element>> {
+      const optionsResolved = {
+        ...defaultOptions?.getElement,
+        ...options
+      } satisfies GetElementOptions
+
+      let elem: ElementHandle<Element> | null = null
+      if (typeof selector === 'string') {
+        if (selector.startsWith('//') || selector.startsWith('(//')) {
+          selector = `xpath/.${selector}`
+          if (optionsResolved.waitForSelector !== undefined) {
+            await page.waitForSelector(selector, { timeout: optionsResolved.waitForSelector })
+          }
+          const [handle] = await page.$$(selector)
+          elem = handle.asElement() as ElementHandle<Element> | null
+        } else {
+          if (optionsResolved.waitForSelector !== undefined) {
+            await page.waitForSelector(selector, { timeout: optionsResolved.waitForSelector })
+          }
+          elem = await page.$(selector)
+        }
+        if (elem === null) {
+          throw new Error(
+            `Could not find element with selector "${selector}", make sure you're waiting for the elements by specifying "waitForSelector"`
+          )
+        }
+      } else {
+        // ElementHandle
+        elem = selector
+      }
+      return elem
     }
   }
 
