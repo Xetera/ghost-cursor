@@ -48,6 +48,10 @@ describe('Mouse movements', () => {
     expect(await page.evaluate(() => window.boxWasClicked)).toEqual(true)
   }
 
+  const getScrollPosition = async (): Promise<{ top: number, left: number }> => await page.evaluate(() => (
+    { top: window.scrollY, left: window.scrollX }
+  ))
+
   it('Should click on the element without throwing an error (CSS selector)', async () => {
     await testClick('#box1')
   })
@@ -57,10 +61,6 @@ describe('Mouse movements', () => {
   })
 
   it('Should scroll to elements correctly', async () => {
-    const getScrollPosition = async (): Promise<{ top: number, left: number }> => await page.evaluate(() => (
-      { top: window.scrollY, left: window.scrollX }
-    ))
-
     const boxes = await Promise.all([1, 2, 3].map(async (number: number): Promise<ElementHandle<HTMLElement>> => {
       const selector = `#box${number}`
       const box = await page.waitForSelector(selector) as ElementHandle<HTMLElement> | null
@@ -88,6 +88,25 @@ describe('Mouse movements', () => {
     expect(await boxes[0].isIntersectingViewport()).toBeFalsy()
     await cursor.click(boxes[0])
     expect(await boxes[0].isIntersectingViewport()).toBeTruthy()
+  })
+
+  it('Should scroll to position correctly', async () => {
+    expect(await getScrollPosition()).toEqual({ top: 0, left: 0 })
+
+    await cursor.scrollTo('bottom')
+    expect(await getScrollPosition()).toEqual({ top: 4450, left: 0 })
+
+    await cursor.scrollTo('right')
+    expect(await getScrollPosition()).toEqual({ top: 4450, left: 2250 })
+
+    await cursor.scrollTo('top')
+    expect(await getScrollPosition()).toEqual({ top: 0, left: 2250 })
+
+    await cursor.scrollTo('left')
+    expect(await getScrollPosition()).toEqual({ top: 0, left: 0 })
+
+    await cursor.scrollTo({ y: 200, x: 400 })
+    expect(await getScrollPosition()).toEqual({ top: 200, left: 400 })
   })
 })
 

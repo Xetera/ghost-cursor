@@ -16,7 +16,8 @@ const cursorDefaultOptions = {
   waitForClick: 10,
   scrollDelay: 100,
   scrollSpeed: 40,
-  inViewportMargin: 50
+  inViewportMargin: 50,
+  waitForSelector: 200
 } as const satisfies ClickOptions
 
 puppeteer.launch({ headless: false }).then(async (browser) => {
@@ -26,8 +27,10 @@ puppeteer.launch({ headless: false }).then(async (browser) => {
 
   const cursor = createCursor(page, undefined, undefined, {
     move: cursorDefaultOptions,
+    moveTo: cursorDefaultOptions,
     click: cursorDefaultOptions,
-    moveTo: cursorDefaultOptions
+    scroll: cursorDefaultOptions,
+    getElement: cursorDefaultOptions
   })
 
   const html = await fs.readFile(join(__dirname, 'custom-page.html'), 'utf8')
@@ -44,6 +47,14 @@ puppeteer.launch({ headless: false }).then(async (browser) => {
     await cursor.click('#box3')
 
     await cursor.click('#box1')
+
+    // await cursor.scrollTo('right')
+
+    // await cursor.scrollTo('left')
+
+    // await cursor.scrollTo('bottom')
+
+    // await cursor.scrollTo('top')
   }
 
   await performActions()

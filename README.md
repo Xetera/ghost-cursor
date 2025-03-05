@@ -144,16 +144,32 @@ Moves the mouse to the specified destination point.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
   - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
   
-#### `scrollIntoView(selector: string | ElementHandle, options?: ScrollOptions) => Promise<void>`
+#### `scrollIntoView(selector: string | ElementHandle, options?: ScrollIntoViewOptions) => Promise<void>`
 
 Scrolls the element into view. If already in view, no scroll occurs.
 
 - **selector:** CSS selector or ElementHandle to identify the target element.
-- **options (optional):** Additional options for scrolling. **Extends the `options` of the `getElement` function (below)**
+- **options (optional):** Additional options for scrolling. **Extends the `options` of the `getElement` and `scroll` functions (below)**
   - `scrollSpeed (number):` Scroll speed (when scrolling occurs). 0 to 100. 100 is instant. Default is `100`.
   - `scrollDelay (number):` Time to wait after scrolling (when scrolling occurs). Default is `200`.
   - `inViewportMargin (number):` Margin (in px) to add around the element when ensuring it is in the viewport. Default is `0`.
 
+#### `scrollTo: (destination: Partial<Vector> | 'top' | 'bottom' | 'left' | 'right', options?: ScrollOptions) => Promise<void>`
+
+Scrolls to the specified destination point.
+
+- **destination:** An object with `x` and `y` coordinates representing the target position. For example, `{ x: 500, y: 300 }`. Can also be `"top"` or `"bottom"`.
+- **options (optional):** Additional options for scrolling. **Extends the `options` of the `scroll` function (below)**
+
+#### `scroll: (delta: Partial<Vector>, options?: ScrollOptions) => Promise<void>`
+
+Scrolls the page the distance set by `delta`.
+
+- **delta:** An object with `x` and `y` coordinates representing the distance to scroll from the current position.
+- **options (optional):** Additional options for scrolling.
+  - `scrollSpeed (number):` Scroll speed. 0 to 100. 100 is instant. Default is `100`.
+  - `scrollDelay (number):` Time to wait after scrolling. Default is `200`.
+  
 #### `getElement(selector: string | ElementHandle, options?: GetElementOptions) => Promise<void>`
 
 Gets the element via a selector. Can use an XPath.
