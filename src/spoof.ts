@@ -114,6 +114,14 @@ export interface ClickOptions extends MoveOptions {
    * @default 2000
    */
   readonly moveDelay?: number
+  /**
+   * @default "left"
+   */
+  readonly button?: Protocol.Input.MouseButton
+  /**
+   * @default 1
+   */
+  readonly clickCount?: number
 }
 
 export interface PathOptions {
@@ -505,6 +513,8 @@ export const createCursor = (
         hesitate: 0,
         waitForClick: 0,
         randomizeMoveDelay: true,
+        button: 'left',
+        clickCount: 1,
         ...defaultOptions?.click,
         ...options
       } satisfies ClickOptions
@@ -525,9 +535,10 @@ export const createCursor = (
 
         const cdpClient = getCDPClient(page)
         const dispatchParams: Omit<Protocol.Input.DispatchMouseEventRequest, 'type'> = {
-          ...previous,
-          button: 'left',
-          clickCount: 1
+          x: previous.x,
+          y: previous.y,
+          button: optionsResolved.button,
+          clickCount: optionsResolved.clickCount
         }
         await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mousePressed' })
         await delay(optionsResolved.waitForClick)
