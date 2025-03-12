@@ -119,6 +119,8 @@ Simulates a mouse click at the specified selector or element.
   - `hesitate (number):` Delay before initiating the click action in milliseconds. Default is `0`.
   - `waitForClick (number):` Delay between mousedown and mouseup in milliseconds. Default is `0`.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `2000`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
+  - `button (MouseButton):` Mouse button to click. Default is `left`.
+  - `clickCount (number):` Number of times to click the button. Default is `1`.
 
 #### `move(selector: string | ElementHandle, options?: MoveOptions): Promise<void>`
 
