@@ -9,6 +9,11 @@ export interface TimedVector extends Vector {
 }
 export const origin: Vector = { x: 0, y: 0 }
 
+export interface Rectangle extends Vector {
+  width: number
+  height: number
+}
+
 // maybe i should've just imported a vector library lol
 export const sub = (a: Vector, b: Vector): Vector => ({ x: a.x - b.x, y: a.y - b.y })
 export const div = (a: Vector, b: number): Vector => ({ x: a.x / b, y: a.y / b })
