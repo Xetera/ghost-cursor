@@ -13,7 +13,7 @@ import {
   clamp,
   scale
 } from './math'
-export { default as installMouseHelper } from './mouse-helper'
+export { installMouseHelper } from './mouse-helper'
 
 const log = debug('ghost-cursor')
 
