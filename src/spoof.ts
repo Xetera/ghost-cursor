@@ -13,7 +13,9 @@ import {
   clamp,
   scale
 } from './math'
-export { default as installMouseHelper } from './mouse-helper'
+import { installMouseHelper } from './mouse-helper'
+
+export { installMouseHelper }
 
 const log = debug('ghost-cursor')
 
@@ -427,7 +429,8 @@ export const createCursor = (
      * @default GetElementOptions
      */
     getElement?: GetElementOptions
-  } = {}
+  } = {},
+  visible: boolean = false
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const OVERSHOOT_SPREAD = 10
@@ -894,6 +897,13 @@ export const createCursor = (
       }
       return elem
     }
+  }
+
+  if (visible) {
+    installMouseHelper(page).then(
+      (_) => { },
+      (_) => { }
+    )
   }
 
   // Start random mouse movements. Do not await the promise but return immediately
