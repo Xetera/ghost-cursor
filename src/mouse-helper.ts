@@ -112,3 +112,4 @@ async function installMouseHelper (page: Page): Promise<void> {
 }
 
 export default installMouseHelper
+export { installMouseHelper }
