@@ -390,19 +390,25 @@ export class GhostCursor {
   private static readonly OVERSHOOT_RADIUS = 120
 
   constructor (
-    page: Page,
-    /**
+    page: Page, {
+      start = origin,
+      performRandomMoves = false,
+      defaultOptions = {}
+    }:
+    {
+      /**
      * Cursor start position.
      * @default { x: 0, y: 0 }
      */
-    start: Vector = origin,
-    /**
-     * Initially perform random movements.
-     * If `move`,`click`, etc. is performed, these random movements end.
-     * @default false
-     */
-    performRandomMoves: boolean = false,
-    defaultOptions: DefaultOptions = {}
+      start?: Vector
+      /**
+         * Initially perform random movements.
+         * If `move`,`click`, etc. is performed, these random movements end.
+         * @default false
+         */
+      performRandomMoves?: boolean
+      defaultOptions?: DefaultOptions
+    } = {}
   ) {
     this.page = page
     this.location = start

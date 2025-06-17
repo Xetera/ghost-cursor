@@ -35,10 +35,12 @@ describe('Mouse movements', () => {
       waitUntil: 'networkidle2'
     })
 
-    cursor = new GhostCursor(page, undefined, undefined, {
-      move: cursorDefaultOptions,
-      click: cursorDefaultOptions,
-      moveTo: cursorDefaultOptions
+    cursor = new GhostCursor(page, {
+      defaultOptions: {
+        move: cursorDefaultOptions,
+        click: cursorDefaultOptions,
+        moveTo: cursorDefaultOptions
+      }
     })
   })
 

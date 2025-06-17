@@ -97,7 +97,7 @@ hovering over the exact center of the element.
 
 ## Methods
 
-#### `new GhostCursor(page: puppeteer.Page, start?: Vector, performRandomMoves?: boolean, defaultOptions?: DefaultOptions): GhostCursor`
+#### `new GhostCursor(page: puppeteer.Page, {start?: Vector, performRandomMoves?: boolean, defaultOptions?: DefaultOptions}): GhostCursor`
 
 Creates the ghost cursor that contains the action functions described below.
 

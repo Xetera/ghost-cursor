@@ -25,12 +25,14 @@ puppeteer.launch({ headless: false }).then(async (browser) => {
 
   await installMouseHelper(page)
 
-  const cursor = new GhostCursor(page, undefined, undefined, {
-    move: cursorDefaultOptions,
-    moveTo: cursorDefaultOptions,
-    click: cursorDefaultOptions,
-    scroll: cursorDefaultOptions,
-    getElement: cursorDefaultOptions
+  const cursor = new GhostCursor(page, {
+    defaultOptions: {
+      move: cursorDefaultOptions,
+      moveTo: cursorDefaultOptions,
+      click: cursorDefaultOptions,
+      scroll: cursorDefaultOptions,
+      getElement: cursorDefaultOptions
+    }
   })
 
   const html = await fs.readFile(join(__dirname, 'custom-page.html'), 'utf8')
