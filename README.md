@@ -194,7 +194,7 @@ Installs a mouse helper on the page. Makes pointer visible. Use for debugging on
 
 Gets a random point on the browser window.
 
-#### `path(point: Vector, target: Vector, options?: number | PathOptions): Vector[] | TimedVector[]`
+#### `path(start: Vector, end: Vector | BoundingBox, options?: number | PathOptions): Vector[] | TimedVector[]`
 
 Generates a set of points for mouse movement between two coordinates.
 
