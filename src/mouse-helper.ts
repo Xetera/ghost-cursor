@@ -4,7 +4,7 @@ import type { Page } from 'puppeteer'
  * This injects a box into the page that moves with the mouse.
  * Useful for debugging.
  */
-async function installMouseHelper (page: Page): Promise<void> {
+async function installMouseHelper(page: Page): Promise<void> {
   await page.evaluateOnNewDocument(() => {
     const attachListener = (): void => {
       const box = document.createElement('p-mouse-pointer')
@@ -97,7 +97,7 @@ async function installMouseHelper (page: Page): Promise<void> {
         },
         true
       )
-      function updateButtons (buttons: number): void {
+      function updateButtons(buttons: number): void {
         for (let i = 0; i < 5; i++) {
           box.classList.toggle('button-' + String(i), Boolean(buttons & (1 << i)))
         }
@@ -112,3 +112,4 @@ async function installMouseHelper (page: Page): Promise<void> {
 }
 
 export default installMouseHelper
+export { installMouseHelper }

@@ -13,7 +13,7 @@ import {
   clamp,
   scale
 } from './math'
-export { default as installMouseHelper } from './mouse-helper'
+export { installMouseHelper } from './mouse-helper'
 
 const log = debug('ghost-cursor')
 
@@ -157,32 +157,37 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
 
 export type ScrollToDestination = Partial<Vector> | 'top' | 'bottom' | 'left' | 'right'
 
-export interface GhostCursor {
-  toggleRandomMove: (random: boolean) => void
-  click: (
-    selector?: string | ElementHandle,
-    options?: ClickOptions
-  ) => Promise<void>
-  move: (
-    selector: string | ElementHandle,
-    options?: MoveOptions
-  ) => Promise<void>
-  moveTo: (
-    destination: Vector,
-    options?: MoveToOptions) => Promise<void>
-  scrollIntoView: (
-    selector: ElementHandle,
-    options?: ScrollIntoViewOptions) => Promise<void>
-  scrollTo: (
-    destination: ScrollToDestination,
-    options?: ScrollOptions) => Promise<void>
-  scroll: (
-    delta: Partial<Vector>,
-    options?: ScrollOptions) => Promise<void>
-  getElement: (
-    selector: string | ElementHandle,
-    options?: GetElementOptions) => Promise<ElementHandle<Element>>
-  getLocation: () => Vector
+export interface DefaultOptions {
+  /**
+   * Default options for the `randomMove` function that occurs when `performRandomMoves=true`
+   * @default RandomMoveOptions
+   */
+  randomMove?: RandomMoveOptions
+  /**
+   * Default options for the `move` function
+   * @default MoveOptions
+   */
+  move?: MoveOptions
+  /**
+   * Default options for the `moveTo` function
+   * @default MoveToOptions
+   */
+  moveTo?: MoveToOptions
+  /**
+   * Default options for the `click` function
+   * @default ClickOptions
+   */
+  click?: ClickOptions
+  /**
+  * Default options for the `scrollIntoView`, `scrollTo`, and `scroll` functions
+  * @default ScrollIntoViewOptions
+  */
+  scroll?: ScrollOptions & ScrollIntoViewOptions
+  /**
+   * Default options for the `getElement` function
+   * @default GetElementOptions
+   */
+  getElement?: GetElementOptions
 }
 
 /** Helper function to wait a specified number of milliseconds  */
@@ -227,15 +232,14 @@ const getRandomBoxPoint = (
 }
 
 /** The function signature to access the internal CDP client changed in puppeteer 14.4.1 */
-const getCDPClient = (page: any): CDPSession => typeof page._client === 'function' ? page._client() : page._client
+export const getCDPClient = (page: Page): CDPSession => typeof (page as any)._client === 'function'
+  ? (page as any)._client()
+  : (page as any)._client
 
 /** Get a random point on a browser window */
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = (page.target() as any)._targetId
-  const window = await getCDPClient(page).send(
-    'Browser.getWindowForTarget',
-    { targetId }
-  )
+  const window = await getCDPClient(page).send('Browser.getWindowForTarget', { targetId })
   return getRandomBoxPoint({
     x: origin.x,
     y: origin.y,
@@ -244,22 +248,17 @@ export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   })
 }
 
-/** Using this method to get correct position of Inline elements (elements like `<a>`) */
-const getElementBox = async (
+/** Get correct position of Inline elements (elements like `<a>`) */
+export const getElementBox = async (
   page: Page,
   element: ElementHandle,
-  relativeToMainFrame: boolean = true
-): Promise<BoundingBox | null> => {
-  const objectId = element.remoteObject().objectId
-  if (objectId === undefined) {
-    return null
-  }
-
+  relativeToMainFrame: boolean = true): Promise<BoundingBox> => {
   try {
-    const quads = await getCDPClient(page).send('DOM.getContentQuads', {
-      objectId
-    })
-    const elementBox = {
+    const objectId = element.remoteObject().objectId
+    if (objectId === undefined) throw new Error('do fallback')
+
+    const quads = await getCDPClient(page).send('DOM.getContentQuads', { objectId })
+    const elementBox: BoundingBox = {
       x: quads.quads[0][0],
       y: quads.quads[0][1],
       width: quads.quads[0][4] - quads.quads[0][0],
@@ -267,29 +266,36 @@ const getElementBox = async (
     }
     if (!relativeToMainFrame) {
       const elementFrame = await element.contentFrame()
-      const iframes =
-        elementFrame != null
-          ? await elementFrame.parentFrame()?.$$('xpath/.//iframe')
-          : null
+      const iframes = await elementFrame?.parentFrame()?.$$('xpath/.//iframe')
       let frame: ElementHandle<Node> | undefined
-      if (iframes != null) {
+      if (iframes !== undefined) {
         for (const iframe of iframes) {
-          if ((await iframe.contentFrame()) === elementFrame) frame = iframe
+          if ((await iframe.contentFrame()) === elementFrame) {
+            frame = iframe
+          }
         }
       }
       if (frame != null) {
-        const boundingBox = await frame.boundingBox()
-        elementBox.x =
-          boundingBox !== null ? elementBox.x - boundingBox.x : elementBox.x
-        elementBox.y =
-          boundingBox !== null ? elementBox.y - boundingBox.y : elementBox.y
+        const frameBox = await frame.boundingBox()
+        if (frameBox !== null) {
+          elementBox.x = elementBox.x - frameBox.x
+          elementBox.y = elementBox.y - frameBox.y
+        }
       }
     }
 
     return elementBox
-  } catch (_) {
+  } catch {
     log('Quads not found, trying regular boundingBox')
-    return await element.boundingBox()
+    const elementBox = await element.boundingBox()
+    if (elementBox === null) {
+      // fallback
+      return await element.evaluate((el: Element) =>
+        el.getBoundingClientRect() as BoundingBox
+      )
+    } else {
+      return elementBox
+    }
   }
 }
 
@@ -369,85 +375,78 @@ const intersectsElement = (vec: Vector, box: BoundingBox): boolean => {
   )
 }
 
-const boundingBoxWithFallback = async (
-  page: Page,
-  elem: ElementHandle<Element>
-): Promise<BoundingBox> => {
-  let box = await getElementBox(page, elem)
-  if (box == null) {
-    box = (await elem.evaluate((el: Element) =>
-      el.getBoundingClientRect()
-    )) as BoundingBox
+export class GhostCursor {
+  readonly page: Page
+  /**
+ * Initially perform random movements.
+ * If `move`,`click`, etc. is performed, these random movements end.
+ * @default false
+ */
+  public performRandomMoves: boolean
+  public defaultOptions: DefaultOptions
+
+  private location: Vector
+  private moving: boolean = false // Initial state: mouse is not moving
+
+  private static readonly OVERSHOOT_SPREAD = 10
+  private static readonly OVERSHOOT_RADIUS = 120
+
+  constructor (
+    page: Page,
+    /**
+     * Cursor start position.
+     * @default { x: 0, y: 0 }
+     */
+    start: Vector = origin,
+    /**
+     * Initially perform random movements.
+     * If `move`,`click`, etc. is performed, these random movements end.
+     * @default false
+     */
+    performRandomMoves: boolean = false,
+    defaultOptions: DefaultOptions = {}
+  ) {
+    this.page = page
+    this.location = start
+    this.performRandomMoves = performRandomMoves
+    this.defaultOptions = defaultOptions
+
+    // Start random mouse movements. Do not await the promise but return immediately
+    if (performRandomMoves) {
+      this.randomMove().then(
+        (_) => { },
+        (_) => { }
+      )
+    }
   }
 
-  return box
-}
+  private getCDPClient (): CDPSession {
+    return getCDPClient(this.page)
+  }
 
-export const createCursor = (
-  page: Page,
+  private async getElementBox (element: ElementHandle, relativeToMainFrame: boolean = true): Promise<BoundingBox> {
+    return await getElementBox(this.page, element, relativeToMainFrame)
+  }
+
+  private async getRandomPagePoint (): Promise<Vector> {
+    return await getRandomPagePoint(this.page)
+  }
+
   /**
-   * Cursor start position.
-   * @default { x: 0, y: 0 }
+   * Move the mouse to a new location
    */
-  start: Vector = origin,
-  /**
-   * Initially perform random movements.
-   * If `move`,`click`, etc. is performed, these random movements end.
-   * @default false
-   */
-  performRandomMoves: boolean = false,
-  defaultOptions: {
-    /**
-     * Default options for the `randomMove` function that occurs when `performRandomMoves=true`
-     * @default RandomMoveOptions
-     */
-    randomMove?: RandomMoveOptions
-    /**
-     * Default options for the `move` function
-     * @default MoveOptions
-     */
-    move?: MoveOptions
-    /**
-     * Default options for the `moveTo` function
-     * @default MoveToOptions
-     */
-    moveTo?: MoveToOptions
-    /**
-     * Default options for the `click` function
-     * @default ClickOptions
-     */
-    click?: ClickOptions
-    /**
-    * Default options for the `scrollIntoView`, `scrollTo`, and `scroll` functions
-    * @default ScrollIntoViewOptions
-    */
-    scroll?: ScrollOptions & ScrollIntoViewOptions
-    /**
-     * Default options for the `getElement` function
-     * @default GetElementOptions
-     */
-    getElement?: GetElementOptions
-  } = {}
-): GhostCursor => {
-  // this is kind of arbitrary, not a big fan but it seems to work
-  const OVERSHOOT_SPREAD = 10
-  const OVERSHOOT_RADIUS = 120
-  let previous: Vector = start
-
-  // Initial state: mouse is not moving
-  let moving: boolean = false
-
-  // Move the mouse over a number of vectors
-  const tracePath = async (
-    vectors: Iterable<Vector | TimedVector>,
+  private async moveMouse (
+    newLocation: BoundingBox | Vector,
+    options?: PathOptions,
     abortOnMove: boolean = false
-  ): Promise<void> => {
-    const cdpClient = getCDPClient(page)
+  ): Promise<void> {
+    const cdpClient = this.getCDPClient()
+    const vectors = path(this.location, newLocation, options)
 
     for (const v of vectors) {
       try {
         // In case this is called from random mouse movements and the users wants to move the mouse, abort
-        if (abortOnMove && moving) {
+        if (abortOnMove && this.moving) {
           return
         }
 
@@ -461,32 +460,34 @@ export const createCursor = (
 
         await cdpClient.send('Input.dispatchMouseEvent', dispatchParams)
 
-        previous = v
+        this.location = v
       } catch (error) {
         // Exit function if the browser is no longer connected
-        if (!page.browser().isConnected()) return
+        if (!this.page.browser().isConnected()) return
 
         log('Warning: could not move mouse, error message:', error)
       }
     }
   }
-  // Start random mouse movements. Function recursively calls itself
-  const randomMove = async (options?: RandomMoveOptions): Promise<void> => {
+
+  /**
+   * Start random mouse movements. Function recursively calls itself.
+   */
+  private async randomMove (options?: RandomMoveOptions): Promise<void> {
     const optionsResolved = {
       moveDelay: 2000,
       randomizeMoveDelay: true,
-      ...defaultOptions?.randomMove,
+      ...this.defaultOptions?.randomMove,
       ...options
     } satisfies RandomMoveOptions
 
     try {
-      if (!moving) {
-        const rand = await getRandomPagePoint(page)
-        await tracePath(path(previous, rand, optionsResolved), true)
-        previous = rand
+      if (!this.moving) {
+        const rand = await this.getRandomPagePoint()
+        await this.moveMouse(rand, optionsResolved, true)
       }
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
-      randomMove(options).then(
+      this.randomMove(options).then(
         (_) => { },
         (_) => { }
       ) // fire and forget, recursive function
@@ -495,414 +496,390 @@ export const createCursor = (
     }
   }
 
-  const actions: GhostCursor = {
-    toggleRandomMove (random: boolean): void {
-      moving = !random
-    },
+  public toggleRandomMove (random: boolean): void {
+    this.moving = !random
+  }
 
-    getLocation (): Vector {
-      return previous
-    },
+  public getLocation (): Vector {
+    return this.location
+  }
 
-    async click (
-      selector?: string | ElementHandle,
-      options?: ClickOptions
-    ): Promise<void> {
-      const optionsResolved = {
-        moveDelay: 2000,
-        hesitate: 0,
-        waitForClick: 0,
-        randomizeMoveDelay: true,
-        button: 'left',
-        clickCount: 1,
-        ...defaultOptions?.click,
-        ...options
-      } satisfies ClickOptions
+  public async click (selector?: string | ElementHandle, options?: ClickOptions): Promise<void> {
+    const optionsResolved = {
+      moveDelay: 2000,
+      hesitate: 0,
+      waitForClick: 0,
+      randomizeMoveDelay: true,
+      button: 'left',
+      clickCount: 1,
+      ...this.defaultOptions?.click,
+      ...options
+    } satisfies ClickOptions
 
-      const wasRandom = !moving
-      actions.toggleRandomMove(false)
+    const wasRandom = !this.moving
+    this.toggleRandomMove(false)
 
-      if (selector !== undefined) {
-        await actions.move(selector, {
-          ...optionsResolved,
-          // apply moveDelay after click, but not after actual move
-          moveDelay: 0
-        })
+    if (selector !== undefined) {
+      await this.move(selector, {
+        ...optionsResolved,
+        // apply moveDelay after click, but not after actual move
+        moveDelay: 0
+      })
+    }
+
+    try {
+      await delay(optionsResolved.hesitate)
+
+      const cdpClient = this.getCDPClient()
+      const dispatchParams: Omit<Protocol.Input.DispatchMouseEventRequest, 'type'> = {
+        x: this.location.x,
+        y: this.location.y,
+        button: optionsResolved.button,
+        clickCount: optionsResolved.clickCount
+      }
+      await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mousePressed' })
+      await delay(optionsResolved.waitForClick)
+      await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mouseReleased' })
+    } catch (error) {
+      log('Warning: could not click mouse, error message:', error)
+    }
+
+    await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+
+    this.toggleRandomMove(wasRandom)
+  }
+
+  public async move (selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
+    const optionsResolved = {
+      moveDelay: 0,
+      maxTries: 10,
+      overshootThreshold: 500,
+      randomizeMoveDelay: true,
+      ...this.defaultOptions?.move,
+      ...options
+    } satisfies MoveOptions
+
+    const wasRandom = !this.moving
+
+    const go = async (iteration: number): Promise<void> => {
+      if (iteration > (optionsResolved.maxTries)) {
+        throw Error('Could not mouse-over element within enough tries')
       }
 
-      try {
-        await delay(optionsResolved.hesitate)
-
-        const cdpClient = getCDPClient(page)
-        const dispatchParams: Omit<Protocol.Input.DispatchMouseEventRequest, 'type'> = {
-          x: previous.x,
-          y: previous.y,
-          button: optionsResolved.button,
-          clickCount: optionsResolved.clickCount
-        }
-        await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mousePressed' })
-        await delay(optionsResolved.waitForClick)
-        await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mouseReleased' })
-      } catch (error) {
-        log('Warning: could not click mouse, error message:', error)
-      }
-
-      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
-
-      actions.toggleRandomMove(wasRandom)
-    },
-
-    async move (
-      selector: string | ElementHandle,
-      options?: MoveOptions
-    ): Promise<void> {
-      const optionsResolved = {
-        moveDelay: 0,
-        maxTries: 10,
-        overshootThreshold: 500,
-        randomizeMoveDelay: true,
-        ...defaultOptions?.move,
-        ...options
-      } satisfies MoveOptions
-
-      const wasRandom = !moving
-
-      const go = async (iteration: number): Promise<void> => {
-        if (iteration > (optionsResolved.maxTries)) {
-          throw Error('Could not mouse-over element within enough tries')
-        }
-
-        actions.toggleRandomMove(false)
-
-        const elem = await this.getElement(selector, optionsResolved)
-
-        // Make sure the object is in view
-        await this.scrollIntoView(elem, optionsResolved)
-
-        const box = await boundingBoxWithFallback(page, elem)
-        const { height, width } = box
-        const destination = (optionsResolved.destination !== undefined)
-          ? add(box, optionsResolved.destination)
-          : getRandomBoxPoint(box, optionsResolved)
-        const dimensions = { height, width }
-        const overshooting = shouldOvershoot(
-          previous,
-          destination,
-          optionsResolved.overshootThreshold
-        )
-        const to = overshooting
-          ? overshoot(destination, OVERSHOOT_RADIUS)
-          : destination
-
-        await tracePath(path(previous, to, optionsResolved))
-
-        if (overshooting) {
-          const correction = path(to, { ...dimensions, ...destination }, {
-            ...optionsResolved,
-            spreadOverride: OVERSHOOT_SPREAD
-          })
-
-          await tracePath(correction)
-        }
-
-        previous = destination
-
-        actions.toggleRandomMove(true)
-
-        const newBoundingBox = await boundingBoxWithFallback(page, elem)
-
-        // It's possible that the element that is being moved towards
-        // has moved to a different location by the time
-        // the the time the mouseover animation finishes
-        if (!intersectsElement(to, newBoundingBox)) {
-          return await go(iteration + 1)
-        }
-      }
-      await go(0)
-
-      actions.toggleRandomMove(wasRandom)
-
-      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
-    },
-
-    async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
-      const optionsResolved = {
-        moveDelay: 0,
-        randomizeMoveDelay: true,
-        ...defaultOptions?.moveTo,
-        ...options
-      } satisfies MoveToOptions
-
-      const wasRandom = !moving
-      actions.toggleRandomMove(false)
-      await tracePath(path(previous, destination, optionsResolved))
-      actions.toggleRandomMove(wasRandom)
-
-      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
-    },
-
-    async scrollIntoView (selector: string | ElementHandle, options?: ScrollIntoViewOptions): Promise<void> {
-      const optionsResolved = {
-        scrollDelay: 200,
-        scrollSpeed: 100,
-        inViewportMargin: 0,
-        ...defaultOptions?.scroll,
-        ...options
-      } satisfies ScrollIntoViewOptions
-
-      const scrollSpeed = clamp(optionsResolved.scrollSpeed, 1, 100)
+      this.toggleRandomMove(false)
 
       const elem = await this.getElement(selector, optionsResolved)
 
-      const {
-        viewportWidth,
-        viewportHeight,
-        docHeight,
-        docWidth,
-        scrollPositionTop,
-        scrollPositionLeft
-      } = await page.evaluate(() => (
-        {
-          viewportWidth: document.body.clientWidth,
-          viewportHeight: document.body.clientHeight,
-          docHeight: document.body.scrollHeight,
-          docWidth: document.body.scrollWidth,
-          scrollPositionTop: window.scrollY,
-          scrollPositionLeft: window.scrollX
-        }
-      ))
+      // Make sure the object is in view
+      await this.scrollIntoView(elem, optionsResolved)
 
-      const elemBoundingBox = await boundingBoxWithFallback(page, elem) // is relative to viewport
-      const elemBox = {
-        top: elemBoundingBox.y,
-        left: elemBoundingBox.x,
-        bottom: elemBoundingBox.y + elemBoundingBox.height,
-        right: elemBoundingBox.x + elemBoundingBox.width
+      const box = await this.getElementBox(elem)
+      const destination = (optionsResolved.destination !== undefined)
+        ? add(box, optionsResolved.destination)
+        : getRandomBoxPoint(box, optionsResolved)
+      const overshooting = shouldOvershoot(
+        this.location,
+        destination,
+        optionsResolved.overshootThreshold
+      )
+      const to = overshooting
+        ? overshoot(destination, GhostCursor.OVERSHOOT_RADIUS)
+        : destination
+
+      await this.moveMouse(to, optionsResolved)
+
+      if (overshooting) {
+        await this.moveMouse(destination, {
+          ...optionsResolved,
+          spreadOverride: GhostCursor.OVERSHOOT_SPREAD
+        })
       }
 
-      // Add margin around the element
-      const marginedBox = {
-        top: elemBox.top - optionsResolved.inViewportMargin,
-        left: elemBox.left - optionsResolved.inViewportMargin,
-        bottom: elemBox.bottom + optionsResolved.inViewportMargin,
-        right: elemBox.right + optionsResolved.inViewportMargin
+      this.toggleRandomMove(true)
+
+      const newBoundingBox = await this.getElementBox(elem)
+
+      // It's possible that the element that is being moved towards
+      // has moved to a different location by the time
+      // the the time the mouseover animation finishes
+      if (!intersectsElement(to, newBoundingBox)) {
+        return await go(iteration + 1)
+      }
+    }
+    await go(0)
+
+    this.toggleRandomMove(wasRandom)
+
+    await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+  }
+
+  public async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
+    const optionsResolved = {
+      moveDelay: 0,
+      randomizeMoveDelay: true,
+      ...this.defaultOptions?.moveTo,
+      ...options
+    } satisfies MoveToOptions
+
+    const wasRandom = !this.moving
+    this.toggleRandomMove(false)
+    await this.moveMouse(destination, optionsResolved)
+    this.toggleRandomMove(wasRandom)
+
+    await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+  }
+
+  public async scrollIntoView (selector: string | ElementHandle, options?: ScrollIntoViewOptions): Promise<void> {
+    const optionsResolved = {
+      scrollDelay: 200,
+      scrollSpeed: 100,
+      inViewportMargin: 0,
+      ...this.defaultOptions?.scroll,
+      ...options
+    } satisfies ScrollIntoViewOptions
+
+    const scrollSpeed = clamp(optionsResolved.scrollSpeed, 1, 100)
+
+    const elem = await this.getElement(selector, optionsResolved)
+
+    const {
+      viewportWidth,
+      viewportHeight,
+      docHeight,
+      docWidth,
+      scrollPositionTop,
+      scrollPositionLeft
+    } = await this.page.evaluate(() => (
+      {
+        viewportWidth: document.body.clientWidth,
+        viewportHeight: document.body.clientHeight,
+        docHeight: document.body.scrollHeight,
+        docWidth: document.body.scrollWidth,
+        scrollPositionTop: window.scrollY,
+        scrollPositionLeft: window.scrollX
+      }
+    ))
+
+    const elemBoundingBox = await this.getElementBox(elem) // is relative to viewport
+    const elemBox = {
+      top: elemBoundingBox.y,
+      left: elemBoundingBox.x,
+      bottom: elemBoundingBox.y + elemBoundingBox.height,
+      right: elemBoundingBox.x + elemBoundingBox.width
+    }
+
+    // Add margin around the element
+    const marginedBox = {
+      top: elemBox.top - optionsResolved.inViewportMargin,
+      left: elemBox.left - optionsResolved.inViewportMargin,
+      bottom: elemBox.bottom + optionsResolved.inViewportMargin,
+      right: elemBox.right + optionsResolved.inViewportMargin
+    }
+
+    // Get position relative to the whole document
+    const marginedBoxRelativeToDoc = {
+      top: marginedBox.top + scrollPositionTop,
+      left: marginedBox.left + scrollPositionLeft,
+      bottom: marginedBox.bottom + scrollPositionTop,
+      right: marginedBox.right + scrollPositionLeft
+    }
+
+    // Convert back to being relative to the viewport-- though if box with margin added goes outside
+    // the document, restrict to being *within* the document.
+    // This makes it so that when element is on the edge of window scroll, isInViewport=true even after
+    // margin was added.
+    const targetBox = {
+      top: Math.max(marginedBoxRelativeToDoc.top, 0) - scrollPositionTop,
+      left: Math.max(marginedBoxRelativeToDoc.left, 0) - scrollPositionLeft,
+      bottom: Math.min(marginedBoxRelativeToDoc.bottom, docHeight) - scrollPositionTop,
+      right: Math.min(marginedBoxRelativeToDoc.right, docWidth) - scrollPositionLeft
+    }
+
+    const { top, left, bottom, right } = targetBox
+
+    const isInViewport = top >= 0 &&
+      left >= 0 &&
+      bottom <= viewportHeight &&
+      right <= viewportWidth
+
+    if (isInViewport) return
+
+    const manuallyScroll = async (): Promise<void> => {
+      let deltaY: number = 0
+      let deltaX: number = 0
+
+      if (top < 0) {
+        deltaY = top // Scroll up
+      } else if (bottom > viewportHeight) {
+        deltaY = bottom - viewportHeight // Scroll down
       }
 
-      // Get position relative to the whole document
-      const marginedBoxRelativeToDoc = {
-        top: marginedBox.top + scrollPositionTop,
-        left: marginedBox.left + scrollPositionLeft,
-        bottom: marginedBox.bottom + scrollPositionTop,
-        right: marginedBox.right + scrollPositionLeft
+      if (left < 0) {
+        deltaX = left // Scroll left
+      } else if (right > viewportWidth) {
+        deltaX = right - viewportWidth// Scroll right
       }
 
-      // Convert back to being relative to the viewport-- though if box with margin added goes outside
-      // the document, restrict to being *within* the document.
-      // This makes it so that when element is on the edge of window scroll, isInViewport=true even after
-      // margin was added.
-      const targetBox = {
-        top: Math.max(marginedBoxRelativeToDoc.top, 0) - scrollPositionTop,
-        left: Math.max(marginedBoxRelativeToDoc.left, 0) - scrollPositionLeft,
-        bottom: Math.min(marginedBoxRelativeToDoc.bottom, docHeight) - scrollPositionTop,
-        right: Math.min(marginedBoxRelativeToDoc.right, docWidth) - scrollPositionLeft
-      }
+      await this.scroll({ x: deltaX, y: deltaY }, optionsResolved)
+    }
 
-      const { top, left, bottom, right } = targetBox
+    try {
+      const cdpClient = this.getCDPClient()
 
-      const isInViewport = top >= 0 &&
-        left >= 0 &&
-        bottom <= viewportHeight &&
-        right <= viewportWidth
-
-      if (isInViewport) return
-
-      const manuallyScroll = async (): Promise<void> => {
-        let deltaY: number = 0
-        let deltaX: number = 0
-
-        if (top < 0) {
-          deltaY = top // Scroll up
-        } else if (bottom > viewportHeight) {
-          deltaY = bottom - viewportHeight // Scroll down
-        }
-
-        if (left < 0) {
-          deltaX = left // Scroll left
-        } else if (right > viewportWidth) {
-          deltaX = right - viewportWidth// Scroll right
-        }
-
-        await this.scroll({ x: deltaX, y: deltaY }, optionsResolved)
-      }
-
-      try {
-        const cdpClient = getCDPClient(page)
-
-        if (scrollSpeed === 100 && optionsResolved.inViewportMargin <= 0) {
-          try {
-            const { objectId } = elem.remoteObject()
-            if (objectId === undefined) throw new Error()
-            await cdpClient.send('DOM.scrollIntoViewIfNeeded', { objectId })
-          } catch {
-            await manuallyScroll()
-          }
-        } else {
+      if (scrollSpeed === 100 && optionsResolved.inViewportMargin <= 0) {
+        try {
+          const { objectId } = elem.remoteObject()
+          if (objectId === undefined) throw new Error()
+          await cdpClient.send('DOM.scrollIntoViewIfNeeded', { objectId })
+        } catch {
           await manuallyScroll()
         }
-      } catch (e) {
-        // use regular JS scroll method as a fallback
-        log('Falling back to JS scroll method', e)
-        await elem.evaluate((e) => e.scrollIntoView({
-          block: 'center',
-          behavior: scrollSpeed < 90 ? 'smooth' : undefined
-        }))
-      }
-    },
-
-    async scroll (delta: Partial<Vector>, options?: ScrollOptions) {
-      const optionsResolved = {
-        scrollDelay: 200,
-        scrollSpeed: 100,
-        ...defaultOptions?.scroll,
-        ...options
-      } satisfies ScrollOptions
-
-      const scrollSpeed = clamp(optionsResolved.scrollSpeed, 1, 100)
-
-      const cdpClient = getCDPClient(page)
-
-      let deltaX = delta.x ?? 0
-      let deltaY = delta.y ?? 0
-      const xDirection = deltaX < 0 ? -1 : 1
-      const yDirection = deltaY < 0 ? -1 : 1
-
-      deltaX = Math.abs(deltaX)
-      deltaY = Math.abs(deltaY)
-
-      const largerDistanceDir = deltaX > deltaY ? 'x' : 'y'
-      const [largerDistance, shorterDistance] = largerDistanceDir === 'x' ? [deltaX, deltaY] : [deltaY, deltaX]
-
-      // When scrollSpeed under 90, pixels moved each scroll is equal to the scrollSpeed. 1 is as slow as we can get (without adding a delay), and 90 is pretty fast.
-      // Above 90 though, scale all the way to the full distance so that scrollSpeed=100 results in only 1 scroll action.
-      const EXP_SCALE_START = 90
-      const largerDistanceScrollStep = scrollSpeed < EXP_SCALE_START
-        ? scrollSpeed
-        : scale(scrollSpeed, [EXP_SCALE_START, 100], [EXP_SCALE_START, largerDistance])
-
-      const numSteps = Math.floor(largerDistance / largerDistanceScrollStep)
-      const largerDistanceRemainder = largerDistance % largerDistanceScrollStep
-      const shorterDistanceScrollStep = Math.floor(shorterDistance / numSteps)
-      const shorterDistanceRemainder = shorterDistance % numSteps
-
-      for (let i = 0; i < numSteps; i++) {
-        let longerDistanceDelta = largerDistanceScrollStep
-        let shorterDistanceDelta = shorterDistanceScrollStep
-        if (i === numSteps - 1) {
-          longerDistanceDelta += largerDistanceRemainder
-          shorterDistanceDelta += shorterDistanceRemainder
-        }
-        let [deltaX, deltaY] = largerDistanceDir === 'x'
-          ? [longerDistanceDelta, shorterDistanceDelta]
-          : [shorterDistanceDelta, longerDistanceDelta]
-        deltaX = deltaX * xDirection
-        deltaY = deltaY * yDirection
-
-        await cdpClient.send('Input.dispatchMouseEvent', {
-          type: 'mouseWheel',
-          deltaX,
-          deltaY,
-          x: previous.x,
-          y: previous.y
-        } satisfies Protocol.Input.DispatchMouseEventRequest)
-      }
-
-      await delay(optionsResolved.scrollDelay)
-    },
-
-    async scrollTo (destination: ScrollToDestination, options?: ScrollOptions) {
-      const optionsResolved = {
-        scrollDelay: 200,
-        scrollSpeed: 100,
-        ...defaultOptions?.scroll,
-        ...options
-      } satisfies ScrollOptions
-
-      const {
-        docHeight,
-        docWidth,
-        scrollPositionTop,
-        scrollPositionLeft
-      } = await page.evaluate(() => (
-        {
-          docHeight: document.body.scrollHeight,
-          docWidth: document.body.scrollWidth,
-          scrollPositionTop: window.scrollY,
-          scrollPositionLeft: window.scrollX
-        }
-      ))
-
-      const to = ((): Partial<Vector> => {
-        switch (destination) {
-          case 'top':
-            return { y: 0 }
-          case 'bottom':
-            return { y: docHeight }
-          case 'left':
-            return { x: 0 }
-          case 'right':
-            return { x: docWidth }
-          default:
-            return destination
-        }
-      })()
-
-      await this.scroll({
-        y: to.y !== undefined ? to.y - scrollPositionTop : 0,
-        x: to.x !== undefined ? to.x - scrollPositionLeft : 0
-      }, optionsResolved)
-    },
-
-    async getElement (selector: string | ElementHandle, options?: GetElementOptions): Promise<ElementHandle<Element>> {
-      const optionsResolved = {
-        ...defaultOptions?.getElement,
-        ...options
-      } satisfies GetElementOptions
-
-      let elem: ElementHandle<Element> | null = null
-      if (typeof selector === 'string') {
-        if (selector.startsWith('//') || selector.startsWith('(//')) {
-          selector = `xpath/.${selector}`
-          if (optionsResolved.waitForSelector !== undefined) {
-            await page.waitForSelector(selector, { timeout: optionsResolved.waitForSelector })
-          }
-          const [handle] = await page.$$(selector)
-          elem = handle.asElement() as ElementHandle<Element> | null
-        } else {
-          if (optionsResolved.waitForSelector !== undefined) {
-            await page.waitForSelector(selector, { timeout: optionsResolved.waitForSelector })
-          }
-          elem = await page.$(selector)
-        }
-        if (elem === null) {
-          throw new Error(
-            `Could not find element with selector "${selector}", make sure you're waiting for the elements by specifying "waitForSelector"`
-          )
-        }
       } else {
-        // ElementHandle
-        elem = selector
+        await manuallyScroll()
       }
-      return elem
+    } catch (e) {
+      // use regular JS scroll method as a fallback
+      log('Falling back to JS scroll method', e)
+      await elem.evaluate((e) => e.scrollIntoView({
+        block: 'center',
+        behavior: scrollSpeed < 90 ? 'smooth' : undefined
+      }))
     }
   }
 
-  // Start random mouse movements. Do not await the promise but return immediately
-  if (performRandomMoves) {
-    randomMove().then(
-      (_) => { },
-      (_) => { }
-    )
+  public async scroll (delta: Partial<Vector>, options?: ScrollOptions): Promise<void> {
+    const optionsResolved = {
+      scrollDelay: 200,
+      scrollSpeed: 100,
+      ...this.defaultOptions?.scroll,
+      ...options
+    } satisfies ScrollOptions
+
+    const scrollSpeed = clamp(optionsResolved.scrollSpeed, 1, 100)
+
+    const cdpClient = this.getCDPClient()
+
+    let deltaX = delta.x ?? 0
+    let deltaY = delta.y ?? 0
+    const xDirection = deltaX < 0 ? -1 : 1
+    const yDirection = deltaY < 0 ? -1 : 1
+
+    deltaX = Math.abs(deltaX)
+    deltaY = Math.abs(deltaY)
+
+    const largerDistanceDir = deltaX > deltaY ? 'x' : 'y'
+    const [largerDistance, shorterDistance] = largerDistanceDir === 'x' ? [deltaX, deltaY] : [deltaY, deltaX]
+
+    // When scrollSpeed under 90, pixels moved each scroll is equal to the scrollSpeed. 1 is as slow as we can get (without adding a delay), and 90 is pretty fast.
+    // Above 90 though, scale all the way to the full distance so that scrollSpeed=100 results in only 1 scroll action.
+    const EXP_SCALE_START = 90
+    const largerDistanceScrollStep = scrollSpeed < EXP_SCALE_START
+      ? scrollSpeed
+      : scale(scrollSpeed, [EXP_SCALE_START, 100], [EXP_SCALE_START, largerDistance])
+
+    const numSteps = Math.floor(largerDistance / largerDistanceScrollStep)
+    const largerDistanceRemainder = largerDistance % largerDistanceScrollStep
+    const shorterDistanceScrollStep = Math.floor(shorterDistance / numSteps)
+    const shorterDistanceRemainder = shorterDistance % numSteps
+
+    for (let i = 0; i < numSteps; i++) {
+      let longerDistanceDelta = largerDistanceScrollStep
+      let shorterDistanceDelta = shorterDistanceScrollStep
+      if (i === numSteps - 1) {
+        longerDistanceDelta += largerDistanceRemainder
+        shorterDistanceDelta += shorterDistanceRemainder
+      }
+      let [deltaX, deltaY] = largerDistanceDir === 'x'
+        ? [longerDistanceDelta, shorterDistanceDelta]
+        : [shorterDistanceDelta, longerDistanceDelta]
+      deltaX = deltaX * xDirection
+      deltaY = deltaY * yDirection
+
+      await cdpClient.send('Input.dispatchMouseEvent', {
+        type: 'mouseWheel',
+        deltaX,
+        deltaY,
+        x: this.location.x,
+        y: this.location.y
+      } satisfies Protocol.Input.DispatchMouseEventRequest)
+    }
+
+    await delay(optionsResolved.scrollDelay)
   }
 
-  return actions
+  public async scrollTo (destination: ScrollToDestination, options?: ScrollOptions): Promise<void> {
+    const optionsResolved = {
+      scrollDelay: 200,
+      scrollSpeed: 100,
+      ...this.defaultOptions?.scroll,
+      ...options
+    } satisfies ScrollOptions
+
+    const {
+      docHeight,
+      docWidth,
+      scrollPositionTop,
+      scrollPositionLeft
+    } = await this.page.evaluate(() => (
+      {
+        docHeight: document.body.scrollHeight,
+        docWidth: document.body.scrollWidth,
+        scrollPositionTop: window.scrollY,
+        scrollPositionLeft: window.scrollX
+      }
+    ))
+
+    const to = ((): Partial<Vector> => {
+      switch (destination) {
+        case 'top':
+          return { y: 0 }
+        case 'bottom':
+          return { y: docHeight }
+        case 'left':
+          return { x: 0 }
+        case 'right':
+          return { x: docWidth }
+        default:
+          return destination
+      }
+    })()
+
+    await this.scroll({
+      y: to.y !== undefined ? to.y - scrollPositionTop : 0,
+      x: to.x !== undefined ? to.x - scrollPositionLeft : 0
+    }, optionsResolved)
+  }
+
+  public async getElement (selector: string | ElementHandle, options?: GetElementOptions): Promise<ElementHandle<Element>> {
+    const optionsResolved = {
+      ...this.defaultOptions?.getElement,
+      ...options
+    } satisfies GetElementOptions
+
+    let elem: ElementHandle<Element> | null = null
+    if (typeof selector === 'string') {
+      if (selector.startsWith('//') || selector.startsWith('(//')) {
+        selector = `xpath/.${selector}`
+        if (optionsResolved.waitForSelector !== undefined) {
+          await this.page.waitForSelector(selector, { timeout: optionsResolved.waitForSelector })
+        }
+        const [handle] = await this.page.$$(selector)
+        elem = handle.asElement() as ElementHandle<Element> | null
+      } else {
+        if (optionsResolved.waitForSelector !== undefined) {
+          await this.page.waitForSelector(selector, { timeout: optionsResolved.waitForSelector })
+        }
+        elem = await this.page.$(selector)
+      }
+      if (elem === null) {
+        throw new Error(
+          `Could not find element with selector "${selector}", make sure you're waiting for the elements by specifying "waitForSelector"`
+        )
+      }
+    } else {
+      // ElementHandle
+      elem = selector
+    }
+    return elem
+  }
 }

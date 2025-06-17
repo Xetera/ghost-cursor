@@ -1,4 +1,4 @@
-import { type ClickOptions, createCursor } from '../spoof'
+import { type ClickOptions, GhostCursor } from '../spoof'
 import { join } from 'path'
 import { promises as fs } from 'fs'
 import installMouseHelper from '../mouse-helper'
@@ -25,7 +25,7 @@ puppeteer.launch({ headless: false }).then(async (browser) => {
 
   await installMouseHelper(page)
 
-  const cursor = createCursor(page, undefined, undefined, {
+  const cursor = new GhostCursor(page, undefined, undefined, {
     move: cursorDefaultOptions,
     moveTo: cursorDefaultOptions,
     click: cursorDefaultOptions,
