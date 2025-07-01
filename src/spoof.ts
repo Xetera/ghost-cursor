@@ -244,22 +244,17 @@ export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   })
 }
 
-/** Using this method to get correct position of Inline elements (elements like `<a>`) */
-const getElementBox = async (
+/** Get correct position of Inline elements (elements like `<a>`). Has fallback. */
+export const getElementBox = async (
   page: Page,
   element: ElementHandle,
-  relativeToMainFrame: boolean = true
-): Promise<BoundingBox | null> => {
-  const objectId = element.remoteObject().objectId
-  if (objectId === undefined) {
-    return null
-  }
-
+  relativeToMainFrame: boolean = true): Promise<BoundingBox> => {
   try {
-    const quads = await getCDPClient(page).send('DOM.getContentQuads', {
-      objectId
-    })
-    const elementBox = {
+    const objectId = element.remoteObject().objectId
+    if (objectId === undefined) throw new Error('do fallback')
+
+    const quads = await getCDPClient(page).send('DOM.getContentQuads', { objectId })
+    const elementBox: BoundingBox = {
       x: quads.quads[0][0],
       y: quads.quads[0][1],
       width: quads.quads[0][4] - quads.quads[0][0],
@@ -267,29 +262,36 @@ const getElementBox = async (
     }
     if (!relativeToMainFrame) {
       const elementFrame = await element.contentFrame()
-      const iframes =
-        elementFrame != null
-          ? await elementFrame.parentFrame()?.$$('xpath/.//iframe')
-          : null
+      const iframes = await elementFrame?.parentFrame()?.$$('xpath/.//iframe')
       let frame: ElementHandle<Node> | undefined
-      if (iframes != null) {
+      if (iframes !== undefined) {
         for (const iframe of iframes) {
-          if ((await iframe.contentFrame()) === elementFrame) frame = iframe
+          if ((await iframe.contentFrame()) === elementFrame) {
+            frame = iframe
+          }
         }
       }
       if (frame != null) {
-        const boundingBox = await frame.boundingBox()
-        elementBox.x =
-          boundingBox !== null ? elementBox.x - boundingBox.x : elementBox.x
-        elementBox.y =
-          boundingBox !== null ? elementBox.y - boundingBox.y : elementBox.y
+        const frameBox = await frame.boundingBox()
+        if (frameBox !== null) {
+          elementBox.x = elementBox.x - frameBox.x
+          elementBox.y = elementBox.y - frameBox.y
+        }
       }
     }
 
     return elementBox
-  } catch (_) {
+  } catch {
     log('Quads not found, trying regular boundingBox')
-    return await element.boundingBox()
+    const elementBox = await element.boundingBox()
+    if (elementBox === null) {
+      // log('BoundingBox null, using getBoundingClientRect')
+      return await element.evaluate((el: Element) =>
+        el.getBoundingClientRect() as BoundingBox
+      )
+    } else {
+      return elementBox
+    }
   }
 }
 
@@ -367,20 +369,6 @@ const intersectsElement = (vec: Vector, box: BoundingBox): boolean => {
     vec.y > box.y &&
     vec.y <= box.y + box.height
   )
-}
-
-const boundingBoxWithFallback = async (
-  page: Page,
-  elem: ElementHandle<Element>
-): Promise<BoundingBox> => {
-  let box = await getElementBox(page, elem)
-  if (box == null) {
-    box = (await elem.evaluate((el: Element) =>
-      el.getBoundingClientRect()
-    )) as BoundingBox
-  }
-
-  return box
 }
 
 export const createCursor = (
@@ -579,7 +567,7 @@ export const createCursor = (
         // Make sure the object is in view
         await this.scrollIntoView(elem, optionsResolved)
 
-        const box = await boundingBoxWithFallback(page, elem)
+        const box = await getElementBox(page, elem)
         const { height, width } = box
         const destination = (optionsResolved.destination !== undefined)
           ? add(box, optionsResolved.destination)
@@ -609,7 +597,7 @@ export const createCursor = (
 
         actions.toggleRandomMove(true)
 
-        const newBoundingBox = await boundingBoxWithFallback(page, elem)
+        const newBoundingBox = await getElementBox(page, elem)
 
         // It's possible that the element that is being moved towards
         // has moved to a different location by the time
@@ -672,7 +660,7 @@ export const createCursor = (
         }
       ))
 
-      const elemBoundingBox = await boundingBoxWithFallback(page, elem) // is relative to viewport
+      const elemBoundingBox = await getElementBox(page, elem) // is relative to viewport
       const elemBox = {
         top: elemBoundingBox.y,
         left: elemBoundingBox.x,
