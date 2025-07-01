@@ -13,7 +13,9 @@ import {
   clamp,
   scale
 } from './math'
-export { installMouseHelper } from './mouse-helper'
+import { installMouseHelper } from './mouse-helper'
+
+export { installMouseHelper }
 
 const log = debug('ghost-cursor')
 
@@ -183,6 +185,12 @@ export interface GhostCursor {
     selector: string | ElementHandle,
     options?: GetElementOptions) => Promise<ElementHandle<Element>>
   getLocation: () => Vector
+  /**
+   * Defined only if `visible=true` is passed.
+   *
+   * NOTE: Must be a promise, since we can't `await` in the constructor.
+   */
+  removeMouseHelper?: Promise<() => Promise<void>>
 }
 
 /** Helper function to wait a specified number of milliseconds  */
@@ -227,15 +235,15 @@ const getRandomBoxPoint = (
 }
 
 /** The function signature to access the internal CDP client changed in puppeteer 14.4.1 */
-const getCDPClient = (page: any): CDPSession => typeof page._client === 'function' ? page._client() : page._client
+export const getCDPClient = (page: Page): CDPSession =>
+  typeof (page as any)._client === 'function'
+    ? (page as any)._client()
+    : (page as any)._client
 
 /** Get a random point on a browser window */
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = (page.target() as any)._targetId
-  const window = await getCDPClient(page).send(
-    'Browser.getWindowForTarget',
-    { targetId }
-  )
+  const window = await getCDPClient(page).send('Browser.getWindowForTarget', { targetId })
   return getRandomBoxPoint({
     x: origin.x,
     y: origin.y,
@@ -416,7 +424,8 @@ export const createCursor = (
      * @default GetElementOptions
      */
     getElement?: GetElementOptions
-  } = {}
+  } = {},
+  visible: boolean = false
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const OVERSHOOT_SPREAD = 10
@@ -883,6 +892,12 @@ export const createCursor = (
       }
       return elem
     }
+  }
+
+  if (visible) {
+    const removeMouseHelper = installMouseHelper(page).then(
+      ({ removeMouseHelper }) => removeMouseHelper)
+    actions.removeMouseHelper = removeMouseHelper
   }
 
   // Start random mouse movements. Do not await the promise but return immediately
