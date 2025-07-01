@@ -195,12 +195,12 @@ Installs a mouse helper on the page, making the pointer visible. Gets executed i
 
 Gets a random point on the browser window.
 
-#### `path(point: Vector, target: Vector, options?: number | PathOptions): Vector[] | TimedVector[]`
+#### `path(start: Vector, end: Vector | BoundingBox, options?: number | PathOptions): Vector[] | TimedVector[]`
 
 Generates a set of points for mouse movement between two coordinates.
 
-- **point:** Starting point of the movement.
-- **target:** Ending point of the movement.
+- **start:** Starting point of the movement.
+- **end:** Ending point (or bounding box) of the movement.
 - **options (optional):** Additional options for generating the path. Can also be a number which will set `spreadOverride`.
   - `spreadOverride (number):` Override the spread of the generated path.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
