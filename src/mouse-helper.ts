@@ -4,9 +4,10 @@ import type { Page } from 'puppeteer'
  * This injects a box into the page that moves with the mouse.
  * Useful for debugging.
  *
- * @returns `removeMouseHelper` function that removes the ghost cursor.
+ * @returns `removeMouseHelper` function that removes the mouseHelper box and listeners.
  */
-async function installMouseHelper (page: Page): Promise<{ removeMouseHelper: () => Promise<void> }> {
+export async function installMouseHelper (page: Page):
+Promise<{ removeMouseHelper: () => Promise<void> }> {
   let _removeMouseHelper: undefined | (() => void)
 
   const { identifier: evaluateOnNewDocumentId } = await page.evaluateOnNewDocument(() => {
@@ -131,6 +132,3 @@ async function installMouseHelper (page: Page): Promise<{ removeMouseHelper: () 
    */
   return { removeMouseHelper }
 }
-
-export default installMouseHelper
-export { installMouseHelper }

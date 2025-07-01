@@ -106,7 +106,7 @@ Creates the ghost cursor. Returns cursor action functions.
 - **performRandomMoves (optional):** Initially perform random movements. Default is `false`.
 - **defaultOptions (optional):** Set custom default options for `click`, `move`, `moveTo`, and `randomMove` functions. Default values are described below.
 - **visible (optional):** Make the cursor visible, using `installMouseHelper()`. Default is `false`.
-- 
+ 
 #### `toggleRandomMove(random: boolean): void`
 
 Toggles random mouse movements on or off.
@@ -189,7 +189,7 @@ Get current location of the cursor.
 
 #### `installMouseHelper(page: Page): Promise<void>`
 
-Installs a mouse helper on the page. Makes pointer visible. Can be done in the `GhostCursor` initialization as well. Use for debugging only.
+Installs a mouse helper on the page, making the pointer visible. Gets executed in the `GhostCursor` initialization when passing `visible=true`. Use for debugging only.
 
 #### `getRandomPagePoint(page: Page): Promise<Vector>`
 
