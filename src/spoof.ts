@@ -185,6 +185,12 @@ export interface GhostCursor {
     selector: string | ElementHandle,
     options?: GetElementOptions) => Promise<ElementHandle<Element>>
   getLocation: () => Vector
+  /**
+   * Defined only if `visible=true` is passed.
+   *
+   * NOTE: Must be a promise, since we can't `await` in the constructor.
+   */
+  removeMouseHelper?: Promise<() => Promise<void>>
 }
 
 /** Helper function to wait a specified number of milliseconds  */
@@ -900,10 +906,9 @@ export const createCursor = (
   }
 
   if (visible) {
-    installMouseHelper(page).then(
-      (_) => { },
-      (_) => { }
-    )
+    const removeMouseHelper = installMouseHelper(page).then(
+      ({ removeMouseHelper }) => removeMouseHelper)
+    actions.removeMouseHelper = removeMouseHelper
   }
 
   // Start random mouse movements. Do not await the promise but return immediately
