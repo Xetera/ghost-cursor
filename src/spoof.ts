@@ -159,40 +159,6 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
 
 export type ScrollToDestination = Partial<Vector> | 'top' | 'bottom' | 'left' | 'right'
 
-export interface GhostCursor {
-  toggleRandomMove: (random: boolean) => void
-  click: (
-    selector?: string | ElementHandle,
-    options?: ClickOptions
-  ) => Promise<void>
-  move: (
-    selector: string | ElementHandle,
-    options?: MoveOptions
-  ) => Promise<void>
-  moveTo: (
-    destination: Vector,
-    options?: MoveToOptions) => Promise<void>
-  scrollIntoView: (
-    selector: ElementHandle,
-    options?: ScrollIntoViewOptions) => Promise<void>
-  scrollTo: (
-    destination: ScrollToDestination,
-    options?: ScrollOptions) => Promise<void>
-  scroll: (
-    delta: Partial<Vector>,
-    options?: ScrollOptions) => Promise<void>
-  getElement: (
-    selector: string | ElementHandle,
-    options?: GetElementOptions) => Promise<ElementHandle<Element>>
-  getLocation: () => Vector
-  /**
-   * Defined only if `visible=true` is passed.
-   *
-   * NOTE: Must be a promise, since we can't `await` in the constructor.
-   */
-  removeMouseHelper?: Promise<() => Promise<void>>
-}
-
 /** Helper function to wait a specified number of milliseconds  */
 const delay = async (ms: number): Promise<void> => {
   if (ms < 1) return
@@ -391,6 +357,7 @@ const boundingBoxWithFallback = async (
   return box
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Types inferred from the returned functions to avoid having to declare the function types in 2 places.
 export const createCursor = (
   page: Page,
   /**
@@ -437,7 +404,7 @@ export const createCursor = (
     getElement?: GetElementOptions
   } = {},
   visible: boolean = false
-): GhostCursor => {
+) => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const OVERSHOOT_SPREAD = 10
   const OVERSHOOT_RADIUS = 120
@@ -504,19 +471,19 @@ export const createCursor = (
     }
   }
 
-  const actions: GhostCursor = {
+  const actions = {
+    /** Toggles random mouse movements on or off. */
     toggleRandomMove (random: boolean): void {
       moving = !random
     },
 
+    /** Get current location of the cursor. */
     getLocation (): Vector {
       return previous
     },
 
-    async click (
-      selector?: string | ElementHandle,
-      options?: ClickOptions
-    ): Promise<void> {
+    /** Simulates a mouse click at the specified selector or element. */
+    async click (selector?: string | ElementHandle, options?: ClickOptions): Promise<void> {
       const optionsResolved = {
         moveDelay: 2000,
         hesitate: 0,
@@ -529,10 +496,10 @@ export const createCursor = (
       } satisfies ClickOptions
 
       const wasRandom = !moving
-      actions.toggleRandomMove(false)
+      this.toggleRandomMove(false)
 
       if (selector !== undefined) {
-        await actions.move(selector, {
+        await this.move(selector, {
           ...optionsResolved,
           // apply moveDelay after click, but not after actual move
           moveDelay: 0
@@ -558,13 +525,11 @@ export const createCursor = (
 
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
 
-      actions.toggleRandomMove(wasRandom)
+      this.toggleRandomMove(wasRandom)
     },
 
-    async move (
-      selector: string | ElementHandle,
-      options?: MoveOptions
-    ): Promise<void> {
+    /** Moves the mouse to the specified selector or element. */
+    async move (selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
       const optionsResolved = {
         moveDelay: 0,
         maxTries: 10,
@@ -581,7 +546,7 @@ export const createCursor = (
           throw Error('Could not mouse-over element within enough tries')
         }
 
-        actions.toggleRandomMove(false)
+        this.toggleRandomMove(false)
 
         const elem = await this.getElement(selector, optionsResolved)
 
@@ -616,7 +581,7 @@ export const createCursor = (
 
         previous = destination
 
-        actions.toggleRandomMove(true)
+        this.toggleRandomMove(true)
 
         const newBoundingBox = await boundingBoxWithFallback(page, elem)
 
@@ -629,11 +594,12 @@ export const createCursor = (
       }
       await go(0)
 
-      actions.toggleRandomMove(wasRandom)
+      this.toggleRandomMove(wasRandom)
 
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
+    /** Moves the mouse to the specified destination point. */
     async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
       const optionsResolved = {
         moveDelay: 0,
@@ -643,13 +609,14 @@ export const createCursor = (
       } satisfies MoveToOptions
 
       const wasRandom = !moving
-      actions.toggleRandomMove(false)
+      this.toggleRandomMove(false)
       await tracePath(path(previous, destination, optionsResolved))
-      actions.toggleRandomMove(wasRandom)
+      this.toggleRandomMove(wasRandom)
 
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
+    /** Scrolls the element into view. If already in view, no scroll occurs. */
     async scrollIntoView (selector: string | ElementHandle, options?: ScrollIntoViewOptions): Promise<void> {
       const optionsResolved = {
         scrollDelay: 200,
@@ -768,7 +735,8 @@ export const createCursor = (
       }
     },
 
-    async scroll (delta: Partial<Vector>, options?: ScrollOptions) {
+    /** Scrolls the page the distance set by `delta`. */
+    async scroll (delta: Partial<Vector>, options?: ScrollOptions): Promise<void> {
       const optionsResolved = {
         scrollDelay: 200,
         scrollSpeed: 100,
@@ -828,7 +796,8 @@ export const createCursor = (
       await delay(optionsResolved.scrollDelay)
     },
 
-    async scrollTo (destination: ScrollToDestination, options?: ScrollOptions) {
+    /** Scrolls to the specified destination point. */
+    async scrollTo (destination: ScrollToDestination, options?: ScrollOptions): Promise<void> {
       const optionsResolved = {
         scrollDelay: 200,
         scrollSpeed: 100,
@@ -871,6 +840,7 @@ export const createCursor = (
       }, optionsResolved)
     },
 
+    /** Gets the element via a selector. Can use an XPath. */
     async getElement (selector: string | ElementHandle, options?: GetElementOptions): Promise<ElementHandle<Element>> {
       const optionsResolved = {
         ...defaultOptions?.getElement,
@@ -902,13 +872,12 @@ export const createCursor = (
         elem = selector
       }
       return elem
-    }
-  }
+    },
 
-  if (visible) {
-    const removeMouseHelper = installMouseHelper(page).then(
-      ({ removeMouseHelper }) => removeMouseHelper)
-    actions.removeMouseHelper = removeMouseHelper
+    removeMouseHelper: visible
+      ? installMouseHelper(page).then(
+        ({ removeMouseHelper }) => removeMouseHelper)
+      : undefined
   }
 
   // Start random mouse movements. Do not await the promise but return immediately
@@ -921,3 +890,5 @@ export const createCursor = (
 
   return actions
 }
+
+export type GhostCursor = ReturnType<typeof createCursor>
