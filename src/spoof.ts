@@ -13,7 +13,9 @@ import {
   clamp,
   scale
 } from './math'
-export { installMouseHelper } from './mouse-helper'
+import { installMouseHelper } from './mouse-helper'
+
+export { installMouseHelper }
 
 const log = debug('ghost-cursor')
 
@@ -183,6 +185,12 @@ export interface GhostCursor {
     selector: string | ElementHandle,
     options?: GetElementOptions) => Promise<ElementHandle<Element>>
   getLocation: () => Vector
+  /**
+   * Defined only if `visible=true` is passed.
+   *
+   * NOTE: Must be a promise, since we can't `await` in the constructor.
+   */
+  removeMouseHelper?: Promise<() => Promise<void>>
 }
 
 /** Helper function to wait a specified number of milliseconds  */
@@ -428,7 +436,8 @@ export const createCursor = (
      * @default GetElementOptions
      */
     getElement?: GetElementOptions
-  } = {}
+  } = {},
+  visible: boolean = false
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const OVERSHOOT_SPREAD = 10
@@ -895,6 +904,12 @@ export const createCursor = (
       }
       return elem
     }
+  }
+
+  if (visible) {
+    const removeMouseHelper = installMouseHelper(page).then(
+      ({ removeMouseHelper }) => removeMouseHelper)
+    actions.removeMouseHelper = removeMouseHelper
   }
 
   // Start random mouse movements. Do not await the promise but return immediately
