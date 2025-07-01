@@ -227,15 +227,15 @@ const getRandomBoxPoint = (
 }
 
 /** The function signature to access the internal CDP client changed in puppeteer 14.4.1 */
-const getCDPClient = (page: any): CDPSession => typeof page._client === 'function' ? page._client() : page._client
+export const getCDPClient = (page: Page): CDPSession =>
+  typeof (page as any)._client === 'function'
+    ? (page as any)._client()
+    : (page as any)._client
 
 /** Get a random point on a browser window */
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = (page.target() as any)._targetId
-  const window = await getCDPClient(page).send(
-    'Browser.getWindowForTarget',
-    { targetId }
-  )
+  const window = await getCDPClient(page).send('Browser.getWindowForTarget', { targetId })
   return getRandomBoxPoint({
     x: origin.x,
     y: origin.y,
@@ -256,9 +256,7 @@ const getElementBox = async (
   }
 
   try {
-    const quads = await getCDPClient(page).send('DOM.getContentQuads', {
-      objectId
-    })
+    const quads = await getCDPClient(page).send('DOM.getContentQuads', { objectId })
     const elementBox = {
       x: quads.quads[0][0],
       y: quads.quads[0][1],
@@ -293,9 +291,12 @@ const getElementBox = async (
   }
 }
 
-export function path (point: Vector, target: Vector, options?: number | PathOptions): Vector[] | TimedVector[]
-export function path (point: Vector, target: BoundingBox, options?: number | PathOptions): Vector[] | TimedVector[]
-export function path (start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] | TimedVector[] {
+/** Generates a set of points for mouse movement between two coordinates. */
+export function path (
+  start: Vector,
+  end: Vector | BoundingBox,
+  /** Additional options for generating the path. Can also be a number which will set `spreadOverride`. */
+  options?: number | PathOptions): Vector[] | TimedVector[] {
   const optionsResolved: PathOptions = typeof options === 'number'
     ? { spreadOverride: options }
     : { ...options }
