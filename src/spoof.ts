@@ -282,15 +282,16 @@ export const getElementBox = async (
 
     return elementBox
   } catch {
-    log('Quads not found, trying regular boundingBox')
-    const elementBox = await element.boundingBox()
-    if (elementBox === null) {
+    try {
+      log('Quads not found, trying regular boundingBox')
+      const elementBox = await element.boundingBox()
+      if (elementBox === null) throw new Error('do fallback')
+      return elementBox
+    } catch {
       // log('BoundingBox null, using getBoundingClientRect')
-      return await element.evaluate((el: Element) =>
+      return await element.evaluate((el) =>
         el.getBoundingClientRect() as BoundingBox
       )
-    } else {
-      return elementBox
     }
   }
 }
