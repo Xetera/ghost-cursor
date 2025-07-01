@@ -1,7 +1,6 @@
 import { type ClickOptions, createCursor } from '../spoof'
 import { join } from 'path'
 import { promises as fs } from 'fs'
-import installMouseHelper from '../mouse-helper'
 import puppeteer from 'puppeteer'
 
 const delay = async (ms: number): Promise<void> => {
@@ -23,15 +22,13 @@ const cursorDefaultOptions = {
 puppeteer.launch({ headless: false }).then(async (browser) => {
   const page = await browser.newPage()
 
-  await installMouseHelper(page)
-
   const cursor = createCursor(page, undefined, undefined, {
     move: cursorDefaultOptions,
     moveTo: cursorDefaultOptions,
     click: cursorDefaultOptions,
     scroll: cursorDefaultOptions,
     getElement: cursorDefaultOptions
-  })
+  }, true)
 
   const html = await fs.readFile(join(__dirname, 'custom-page.html'), 'utf8')
 
