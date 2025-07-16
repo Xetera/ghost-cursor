@@ -350,10 +350,10 @@ const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVect
   const timedVectors: TimedVector[] = vectors.map((vector) => ({ ...vector, timestamp: 0 }))
 
   for (let i = 0; i < timedVectors.length; i++) {
+    const P0 = timedVectors[Math.max(i - 1, 0)]
     const P1 = timedVectors[i]
-    const P0 = i === 0 ? P1 : timedVectors[i - 1]
-    const P2 = i === timedVectors.length - 1 ? P1 : timedVectors[i + 1]
-    const P3 = i === timedVectors.length - 2 ? P2 : timedVectors[i + 2]
+    const P2 = timedVectors[Math.min(i + 1, timedVectors.length)]
+    const P3 = timedVectors[Math.min(i + 2, timedVectors.length)]
     const time = timeToMove(P0, P1, P2, P3, timedVectors.length)
 
     timedVectors[i] = {
