@@ -272,7 +272,7 @@ export const getElementBox = async (
       const elementFrame = await element.contentFrame()
       const iframes = await elementFrame?.parentFrame()?.$$('xpath/.//iframe')
       let frame: ElementHandle<Node> | undefined
-      if (iframes !== undefined) {
+      if (iframes !== undefined && iframes !== null) {
         for (const iframe of iframes) {
           if ((await iframe.contentFrame()) === elementFrame) {
             frame = iframe
