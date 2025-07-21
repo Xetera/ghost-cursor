@@ -874,6 +874,10 @@ export const createCursor = (
       return elem
     },
 
+    /**
+    * Make the cursor no longer visible.
+    * Defined only if `visible=true` was passed.
+    */
     removeMouseHelper: visible
       ? installMouseHelper(page).then(
         ({ removeMouseHelper }) => removeMouseHelper)
