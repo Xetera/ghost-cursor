@@ -282,8 +282,8 @@ export const getElementBox = async (
       if (frame != null) {
         const frameBox = await frame.boundingBox()
         if (frameBox !== null) {
-          elementBox.x = elementBox.x - frameBox.x
-          elementBox.y = elementBox.y - frameBox.y
+          elementBox.x -= frameBox.x
+          elementBox.y -= frameBox.y
         }
       }
     }
