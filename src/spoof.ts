@@ -160,36 +160,44 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
 export type ScrollToDestination = Partial<Vector> | 'top' | 'bottom' | 'left' | 'right'
 
 export interface GhostCursor {
+  /** Toggles random mouse movements on or off. */
   toggleRandomMove: (random: boolean) => void
+  /** Simulates a mouse click at the specified selector or element. */
   click: (
     selector?: string | ElementHandle,
     options?: ClickOptions
   ) => Promise<void>
+  /** Moves the mouse to the specified selector or element. */
   move: (
     selector: string | ElementHandle,
     options?: MoveOptions
   ) => Promise<void>
+  /** Moves the mouse to the specified destination point. */
   moveTo: (
     destination: Vector,
     options?: MoveToOptions) => Promise<void>
+  /** Scrolls the element into view. If already in view, no scroll occurs. */
   scrollIntoView: (
     selector: ElementHandle,
     options?: ScrollIntoViewOptions) => Promise<void>
+  /** Scrolls to the specified destination point. */
   scrollTo: (
     destination: ScrollToDestination,
     options?: ScrollOptions) => Promise<void>
+  /** Scrolls the page the distance set by `delta`. */
   scroll: (
     delta: Partial<Vector>,
     options?: ScrollOptions) => Promise<void>
+  /** Gets the element via a selector. Can use an XPath. */
   getElement: (
     selector: string | ElementHandle,
     options?: GetElementOptions) => Promise<ElementHandle<Element>>
+  /** Get current location of the cursor. */
   getLocation: () => Vector
   /**
-   * Defined only if `visible=true` is passed.
-   *
-   * NOTE: Must be a promise, since we can't `await` in the constructor.
-   */
+    * Make the cursor no longer visible.
+    * Defined only if `visible=true` was passed.
+    */
   removeMouseHelper?: Promise<() => Promise<void>>
 }
 
@@ -435,7 +443,7 @@ export const createCursor = (
   // Initial state: mouse is not moving
   let moving: boolean = false
 
-  // Move the mouse over a number of vectors
+  /** Move the mouse over a number of vectors */
   const tracePath = async (
     vectors: Iterable<Vector | TimedVector>,
     abortOnMove: boolean = false
@@ -468,7 +476,7 @@ export const createCursor = (
       }
     }
   }
-  // Start random mouse movements. Function recursively calls itself
+  /** Start random mouse movements. Function recursively calls itself. */
   const randomMove = async (options?: RandomMoveOptions): Promise<void> => {
     const optionsResolved = {
       moveDelay: 2000,
@@ -494,14 +502,17 @@ export const createCursor = (
   }
 
   const actions: GhostCursor = {
+    /** Toggles random mouse movements on or off. */
     toggleRandomMove (random: boolean): void {
       moving = !random
     },
 
+    /** Get current location of the cursor. */
     getLocation (): Vector {
       return previous
     },
 
+    /** Simulates a mouse click at the specified selector or element. */
     async click (
       selector?: string | ElementHandle,
       options?: ClickOptions
@@ -550,6 +561,7 @@ export const createCursor = (
       actions.toggleRandomMove(wasRandom)
     },
 
+    /** Moves the mouse to the specified selector or element. */
     async move (
       selector: string | ElementHandle,
       options?: MoveOptions
@@ -623,6 +635,7 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
+    /** Moves the mouse to the specified destination point. */
     async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
       const optionsResolved = {
         moveDelay: 0,
@@ -639,6 +652,7 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
+    /** Scrolls the element into view. If already in view, no scroll occurs. */
     async scrollIntoView (selector: string | ElementHandle, options?: ScrollIntoViewOptions): Promise<void> {
       const optionsResolved = {
         scrollDelay: 200,
@@ -757,6 +771,7 @@ export const createCursor = (
       }
     },
 
+    /** Scrolls the page the distance set by `delta`. */
     async scroll (delta: Partial<Vector>, options?: ScrollOptions) {
       const optionsResolved = {
         scrollDelay: 200,
@@ -817,6 +832,7 @@ export const createCursor = (
       await delay(optionsResolved.scrollDelay)
     },
 
+    /** Scrolls to the specified destination point. */
     async scrollTo (destination: ScrollToDestination, options?: ScrollOptions) {
       const optionsResolved = {
         scrollDelay: 200,
@@ -860,6 +876,7 @@ export const createCursor = (
       }, optionsResolved)
     },
 
+    /** Gets the element via a selector. Can use an XPath. */
     async getElement (selector: string | ElementHandle, options?: GetElementOptions): Promise<ElementHandle<Element>> {
       const optionsResolved = {
         ...defaultOptions?.getElement,
@@ -894,11 +911,14 @@ export const createCursor = (
     }
   }
 
-  if (visible) {
-    const removeMouseHelper = installMouseHelper(page).then(
+  /**
+    * Make the cursor no longer visible.
+    * Defined only if `visible=true` was passed.
+    */
+  actions.removeMouseHelper = visible
+    ? installMouseHelper(page).then(
       ({ removeMouseHelper }) => removeMouseHelper)
-    actions.removeMouseHelper = removeMouseHelper
-  }
+    : undefined
 
   // Start random mouse movements. Do not await the promise but return immediately
   if (performRandomMoves) {
