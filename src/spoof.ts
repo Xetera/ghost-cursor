@@ -11,7 +11,8 @@ import {
   overshoot,
   add,
   clamp,
-  scale
+  scale,
+  extrapolate
 } from './math'
 import { installMouseHelper } from './mouse-helper'
 
@@ -348,18 +349,22 @@ const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVect
     return Math.round(total / speed)
   }
 
-  const timedVectors: TimedVector[] = vectors.map((vector) => ({ ...vector, timestamp: 0 }))
+  const timedVectors: TimedVector[] = []
 
-  for (let i = 0; i < timedVectors.length; i++) {
-    const P0 = i === 0 ? timedVectors[i] : timedVectors[i - 1]
-    const P1 = timedVectors[i]
-    const P2 = i === timedVectors.length - 1 ? timedVectors[i] : timedVectors[i + 1]
-    const P3 = i === timedVectors.length - 1 ? timedVectors[i] : timedVectors[i + 1]
-    const time = timeToMove(P0, P1, P2, P3, timedVectors.length)
+  for (let i = 0; i < vectors.length; i++) {
+    if (i === 0) {
+      timedVectors.push({ ...vectors[i], timestamp: Date.now() })
+    } else {
+      const P0 = vectors[i - 1]
+      const P1 = vectors[i]
+      const P2 = i + 1 < vectors.length ? vectors[i + 1] : extrapolate(P0, P1)
+      const P3 = i + 2 < vectors.length ? vectors[i + 2] : extrapolate(P1, P2)
+      const time = timeToMove(P0, P1, P2, P3, vectors.length)
 
-    timedVectors[i] = {
-      ...timedVectors[i],
-      timestamp: i === 0 ? Date.now() : timedVectors[i - 1].timestamp + time
+      timedVectors.push({
+        ...vectors[i],
+        timestamp: timedVectors[i - 1].timestamp + time
+      })
     }
   }
 
