@@ -305,7 +305,7 @@ export const getElementBox = async (
       if (elementBox === null) throw new Error('Element boundingBox is null, falling back to getBoundingClientRect')
       return elementBox
     } catch {
-      // log('BoundingBox null, using getBoundingClientRect')
+      log('BoundingBox null, using getBoundingClientRect')
       return await element.evaluate((el) =>
         el.getBoundingClientRect() as BoundingBox
       )
