@@ -53,9 +53,9 @@ export interface ScrollOptions {
    */
   readonly scrollSpeed?: number
   /**
- * Time to wait after scrolling.
- * @default 200
- */
+   * Time to wait after scrolling.
+   * @default 200
+   */
   readonly scrollDelay?: number
 }
 
