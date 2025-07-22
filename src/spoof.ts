@@ -11,9 +11,12 @@ import {
   overshoot,
   add,
   clamp,
-  scale
+  scale,
+  extrapolate
 } from './math'
-export { installMouseHelper } from './mouse-helper'
+import { installMouseHelper } from './mouse-helper'
+
+export { installMouseHelper }
 
 const log = debug('ghost-cursor')
 
@@ -50,9 +53,9 @@ export interface ScrollOptions {
    */
   readonly scrollSpeed?: number
   /**
- * Time to wait after scrolling.
- * @default 200
- */
+   * Time to wait after scrolling.
+   * @default 200
+   */
   readonly scrollDelay?: number
 }
 
@@ -232,9 +235,10 @@ const getRandomBoxPoint = (
 }
 
 /** The function signature to access the internal CDP client changed in puppeteer 14.4.1 */
-export const getCDPClient = (page: Page): CDPSession => typeof (page as any)._client === 'function'
-  ? (page as any)._client()
-  : (page as any)._client
+export const getCDPClient = (page: Page): CDPSession =>
+  typeof (page as any)._client === 'function'
+    ? (page as any)._client()
+    : (page as any)._client
 
 /** Get a random point on a browser window */
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
@@ -299,7 +303,12 @@ export const getElementBox = async (
   }
 }
 
-export function path (start: Vector, end: Vector | BoundingBox, options?: number | PathOptions): Vector[] | TimedVector[] {
+/** Generates a set of points for mouse movement between two coordinates. */
+export function path (
+  start: Vector,
+  end: Vector | BoundingBox,
+  /** Additional options for generating the path. Can also be a number which will set `spreadOverride`. */
+  options?: number | PathOptions): Vector[] | TimedVector[] {
   const optionsResolved: PathOptions = typeof options === 'number'
     ? { spreadOverride: options }
     : { ...options }
@@ -343,18 +352,22 @@ const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVect
     return Math.round(total / speed)
   }
 
-  const timedVectors: TimedVector[] = vectors.map((vector) => ({ ...vector, timestamp: 0 }))
+  const timedVectors: TimedVector[] = []
 
-  for (let i = 0; i < timedVectors.length; i++) {
-    const P0 = i === 0 ? timedVectors[i] : timedVectors[i - 1]
-    const P1 = timedVectors[i]
-    const P2 = i === timedVectors.length - 1 ? timedVectors[i] : timedVectors[i + 1]
-    const P3 = i === timedVectors.length - 1 ? timedVectors[i] : timedVectors[i + 1]
-    const time = timeToMove(P0, P1, P2, P3, timedVectors.length)
+  for (let i = 0; i < vectors.length; i++) {
+    if (i === 0) {
+      timedVectors.push({ ...vectors[i], timestamp: Date.now() })
+    } else {
+      const P0 = vectors[i - 1]
+      const P1 = vectors[i]
+      const P2 = i + 1 < vectors.length ? vectors[i + 1] : extrapolate(P0, P1)
+      const P3 = i + 2 < vectors.length ? vectors[i + 2] : extrapolate(P1, P2)
+      const time = timeToMove(P0, P1, P2, P3, vectors.length)
 
-    timedVectors[i] = {
-      ...timedVectors[i],
-      timestamp: i === 0 ? Date.now() : timedVectors[i - 1].timestamp + time
+      timedVectors.push({
+        ...vectors[i],
+        timestamp: timedVectors[i - 1].timestamp + time
+      })
     }
   }
 
@@ -376,12 +389,13 @@ const intersectsElement = (vec: Vector, box: BoundingBox): boolean => {
 export class GhostCursor {
   readonly page: Page
   /**
- * Initially perform random movements.
- * If `move`,`click`, etc. is performed, these random movements end.
- * @default false
- */
+   * Initially perform random movements.
+   * If `move`,`click`, etc. is performed, these random movements end.
+   * @default false
+   */
   public performRandomMoves: boolean
   public defaultOptions: DefaultOptions
+  public removeMouseHelper: undefined | Promise<() => Promise<void>>
 
   private location: Vector
   private moving: boolean = false // Initial state: mouse is not moving
@@ -393,13 +407,14 @@ export class GhostCursor {
     page: Page, {
       start = origin,
       performRandomMoves = false,
-      defaultOptions = {}
+      defaultOptions = {},
+      visible = false
     }:
     {
       /**
-     * Cursor start position.
-     * @default { x: 0, y: 0 }
-     */
+         * Cursor start position.
+         * @default { x: 0, y: 0 }
+         */
       start?: Vector
       /**
          * Initially perform random movements.
@@ -408,12 +423,22 @@ export class GhostCursor {
          */
       performRandomMoves?: boolean
       defaultOptions?: DefaultOptions
+      visible?: boolean
     } = {}
   ) {
     this.page = page
     this.location = start
     this.performRandomMoves = performRandomMoves
     this.defaultOptions = defaultOptions
+
+    /**
+    * Make the cursor no longer visible.
+    * Defined only if `visible=true` was passed.
+    */
+    if (visible) {
+      this.removeMouseHelper = installMouseHelper(page).then(
+        ({ removeMouseHelper }) => removeMouseHelper)
+    }
 
     // Start random mouse movements. Do not await the promise but return immediately
     if (performRandomMoves) {

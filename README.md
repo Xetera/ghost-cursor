@@ -97,7 +97,7 @@ hovering over the exact center of the element.
 
 ## Methods
 
-#### `new GhostCursor(page: puppeteer.Page, {start?: Vector, performRandomMoves?: boolean, defaultOptions?: DefaultOptions}): GhostCursor`
+#### `new GhostCursor(page: puppeteer.Page, { start?: Vector, performRandomMoves?: boolean, defaultOptions?: DefaultOptions, visible?: boolean = false }): GhostCursor`
 
 Creates the ghost cursor that contains the action functions described below.
 
@@ -105,7 +105,8 @@ Creates the ghost cursor that contains the action functions described below.
 - **start (optional):** Cursor start position. Default is `{ x: 0, y: 0 }`.
 - **performRandomMoves (optional):** Initially perform random movements. Default is `false`.
 - **defaultOptions (optional):** Set custom default options for `click`, `move`, `moveTo`, and `randomMove` functions. Default values are described below.
-
+- **visible (optional):** Make the cursor visible, using `installMouseHelper()`. Default is `false`.
+ 
 #### `toggleRandomMove(random: boolean): void`
 
 Toggles random mouse movements on or off.
@@ -188,7 +189,7 @@ Get current location of the cursor.
 
 #### `installMouseHelper(page: Page): Promise<void>`
 
-Installs a mouse helper on the page. Makes pointer visible. Use for debugging only.
+Installs a mouse helper on the page, making the pointer visible. Gets executed in the `GhostCursor` initialization when passing `visible=true`. Use for debugging only.
 
 #### `getRandomPagePoint(page: Page): Promise<Vector>`
 
@@ -198,8 +199,8 @@ Gets a random point on the browser window.
 
 Generates a set of points for mouse movement between two coordinates.
 
-- **point:** Starting point of the movement.
-- **target:** Ending point of the movement.
+- **start:** Starting point of the movement.
+- **end:** Ending point (or bounding box) of the movement.
 - **options (optional):** Additional options for generating the path. Can also be a number which will set `spreadOverride`.
   - `spreadOverride (number):` Override the spread of the generated path.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
