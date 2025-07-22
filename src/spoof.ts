@@ -363,7 +363,7 @@ const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVect
       timedVectors.push({
         ...vectors[i],
         timestamp: timedVectors[i - 1].timestamp + time
-      }
+      })
     }
   }
 
