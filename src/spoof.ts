@@ -268,7 +268,7 @@ export const getElementBox = async (
   relativeToMainFrame: boolean = true): Promise<BoundingBox> => {
   try {
     const objectId = element.remoteObject().objectId
-    if (objectId === undefined) throw new Error('Element objectId is undefined, falling back to alternative method')
+    if (objectId === undefined) throw new Error('Element objectId is undefined, falling back to alternative methods')
 
     const quads = await getCDPClient(page).send('DOM.getContentQuads', { objectId })
     const elementBox: BoundingBox = {
