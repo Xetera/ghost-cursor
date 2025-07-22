@@ -280,19 +280,19 @@ export const getElementBox = async (
     if (!relativeToMainFrame) {
       const elementFrame = await element.contentFrame()
       const iframes = await elementFrame?.parentFrame()?.$$('xpath/.//iframe')
-      let frame: ElementHandle<Node> | undefined
       if (iframes !== undefined && iframes !== null) {
+        let frame: ElementHandle<Node> | undefined
         for (const iframe of iframes) {
           if ((await iframe.contentFrame()) === elementFrame) {
             frame = iframe
           }
         }
-      }
-      if (frame != null) {
-        const frameBox = await frame.boundingBox()
-        if (frameBox !== null) {
-          elementBox.x -= frameBox.x
-          elementBox.y -= frameBox.y
+        if (frame !== undefined && frame != null) {
+          const frameBox = await frame.boundingBox()
+          if (frameBox !== null) {
+            elementBox.x -= frameBox.x
+            elementBox.y -= frameBox.y
+          }
         }
       }
     }
