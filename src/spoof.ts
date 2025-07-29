@@ -311,7 +311,11 @@ export const getElementBox = async (
 export function path (
   start: Vector,
   end: Vector | BoundingBox,
-  /** Additional options for generating the path. Can also be a number which will set `spreadOverride`. */
+  /**
+   * Additional options for generating the path.
+   * Can also be a number which will set `spreadOverride` (TODO: remove this in next major version change,
+   * no need to not just allow object.)
+   */
   options?: number | PathOptions): Vector[] | TimedVector[] {
   const optionsResolved: PathOptions = typeof options === 'number'
     ? { spreadOverride: options }
@@ -423,25 +427,25 @@ export class GhostCursor {
     }:
     {
       /**
-       * Cursor start position.
-       * @default { x: 0, y: 0 }
-       */
+         * Cursor start position.
+         * @default { x: 0, y: 0 }
+         */
       start?: Vector
       /**
-       * Initially perform random movements.
-       * If `move`,`click`, etc. is performed, these random movements end.
-       * @default false
-       */
+         * Initially perform random movements.
+         * If `move`,`click`, etc. is performed, these random movements end.
+         * @default false
+         */
       performRandomMoves?: boolean
       /**
-       * Set custom default options for cursor action functions.
-       * Default values are described in the type JSdocs.
-       */
+         * Set custom default options for cursor action functions.
+         * Default values are described in the type JSdocs.
+         */
       defaultOptions?: DefaultOptions
       /**
-       * Whether cursor should be made visible using `installMouseHelper`.
-       * @default false
-       */
+         * Whether cursor should be made visible using `installMouseHelper`.
+         * @default false
+         */
       visible?: boolean
     } = {}
   ) {
@@ -920,3 +924,32 @@ export class GhostCursor {
     return elem
   }
 }
+
+/**
+ * @deprecated
+ * Remove on next major version change. Prefer to just to `new GhostCursor` instead of this function.
+ * Is here so that our change to the GhostCursor class doesn't break things.
+ */
+export const createCursor = (
+  page: Page,
+  /**
+   * Cursor start position.
+   * @default { x: 0, y: 0 }
+   */
+  start: Vector = origin,
+  /**
+   * Initially perform random movements.
+   * If `move`,`click`, etc. is performed, these random movements end.
+   * @default false
+   */
+  performRandomMoves: boolean = false,
+  /**
+   * Default options for cursor functions.
+   */
+  defaultOptions: DefaultOptions = {},
+  /**
+   * Whether cursor should be made visible using `installMouseHelper`.
+   * @default false
+   */
+  visible: boolean = false
+): GhostCursor => new GhostCursor(page, { start, performRandomMoves, defaultOptions, visible })
