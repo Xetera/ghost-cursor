@@ -423,17 +423,25 @@ export class GhostCursor {
     }:
     {
       /**
-           * Cursor start position.
-           * @default { x: 0, y: 0 }
-           */
+       * Cursor start position.
+       * @default { x: 0, y: 0 }
+       */
       start?: Vector
       /**
-           * Initially perform random movements.
-           * If `move`,`click`, etc. is performed, these random movements end.
-           * @default false
-           */
+       * Initially perform random movements.
+       * If `move`,`click`, etc. is performed, these random movements end.
+       * @default false
+       */
       performRandomMoves?: boolean
+      /**
+       * Set custom default options for cursor action functions.
+       * Default values are described in the type JSdocs.
+       */
       defaultOptions?: DefaultOptions
+      /**
+       * Whether cursor should be made visible using `installMouseHelper`.
+       * @default false
+       */
       visible?: boolean
     } = {}
   ) {
