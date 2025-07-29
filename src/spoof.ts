@@ -160,6 +160,9 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
 
 export type ScrollToDestination = Partial<Vector> | 'top' | 'bottom' | 'left' | 'right'
 
+/**
+ * Default options for cursor functions.
+ */
 export interface DefaultOptions {
   /**
    * Default options for the `randomMove` function that occurs when `performRandomMoves=true`
@@ -395,7 +398,14 @@ export class GhostCursor {
    * @default false
    */
   public performRandomMoves: boolean
+  /**
+   * Default options for cursor functions.
+   */
   public defaultOptions: DefaultOptions
+  /**
+   * Make the cursor no longer visible.
+   * Defined only if `visible=true` was passed.
+   */
   public removeMouseHelper: undefined | Promise<() => Promise<void>>
 
   private location: Vector
@@ -413,15 +423,15 @@ export class GhostCursor {
     }:
     {
       /**
-         * Cursor start position.
-         * @default { x: 0, y: 0 }
-         */
+           * Cursor start position.
+           * @default { x: 0, y: 0 }
+           */
       start?: Vector
       /**
-         * Initially perform random movements.
-         * If `move`,`click`, etc. is performed, these random movements end.
-         * @default false
-         */
+           * Initially perform random movements.
+           * If `move`,`click`, etc. is performed, these random movements end.
+           * @default false
+           */
       performRandomMoves?: boolean
       defaultOptions?: DefaultOptions
       visible?: boolean
@@ -432,10 +442,6 @@ export class GhostCursor {
     this.performRandomMoves = performRandomMoves
     this.defaultOptions = defaultOptions
 
-    /**
-    * Make the cursor no longer visible.
-    * Defined only if `visible=true` was passed.
-    */
     if (visible) {
       this.removeMouseHelper = installMouseHelper(page).then(
         ({ removeMouseHelper }) => removeMouseHelper)
@@ -450,21 +456,22 @@ export class GhostCursor {
     }
   }
 
+  /** Access the internal CDP client */
   private getCDPClient (): CDPSession {
     return getCDPClient(this.page)
   }
 
+  /** Get correct position of Inline elements (elements like `<a>`). Has fallback. */
   private async getElementBox (element: ElementHandle, relativeToMainFrame: boolean = true): Promise<BoundingBox> {
     return await getElementBox(this.page, element, relativeToMainFrame)
   }
 
+  /** Get a random point on the browser window */
   private async getRandomPagePoint (): Promise<Vector> {
     return await getRandomPagePoint(this.page)
   }
 
-  /**
-   * Move the mouse to a new location
-   */
+  /** Move the mouse to a new location */
   private async moveMouse (
     newLocation: BoundingBox | Vector,
     options?: PathOptions,
@@ -500,9 +507,7 @@ export class GhostCursor {
     }
   }
 
-  /**
-   * Start random mouse movements. Function recursively calls itself.
-   */
+  /** Start random mouse movements. Function recursively calls itself. */
   private async randomMove (options?: RandomMoveOptions): Promise<void> {
     const optionsResolved = {
       moveDelay: 2000,
@@ -526,14 +531,17 @@ export class GhostCursor {
     }
   }
 
+  /** Toggles random mouse movements on or off. */
   public toggleRandomMove (random: boolean): void {
     this.moving = !random
   }
 
+  /** Get current location of the cursor. */
   public getLocation (): Vector {
     return this.location
   }
 
+  /** Simulates a mouse click at the specified selector or element. */
   public async click (selector?: string | ElementHandle, options?: ClickOptions): Promise<void> {
     const optionsResolved = {
       moveDelay: 2000,
@@ -579,6 +587,7 @@ export class GhostCursor {
     this.toggleRandomMove(wasRandom)
   }
 
+  /** Moves the mouse to the specified selector or element. */
   public async move (selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
     const optionsResolved = {
       moveDelay: 0,
@@ -643,6 +652,7 @@ export class GhostCursor {
     await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
   }
 
+  /** Moves the mouse to the specified destination point. */
   public async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
     const optionsResolved = {
       moveDelay: 0,
@@ -659,6 +669,7 @@ export class GhostCursor {
     await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
   }
 
+  /** Scrolls the element into view. If already in view, no scroll occurs. */
   public async scrollIntoView (selector: string | ElementHandle, options?: ScrollIntoViewOptions): Promise<void> {
     const optionsResolved = {
       scrollDelay: 200,
@@ -777,6 +788,7 @@ export class GhostCursor {
     }
   }
 
+  /** Scrolls the page the distance set by `delta`. */
   public async scroll (delta: Partial<Vector>, options?: ScrollOptions): Promise<void> {
     const optionsResolved = {
       scrollDelay: 200,
@@ -837,6 +849,7 @@ export class GhostCursor {
     await delay(optionsResolved.scrollDelay)
   }
 
+  /** Scrolls to the specified destination point. */
   public async scrollTo (destination: ScrollToDestination, options?: ScrollOptions): Promise<void> {
     const optionsResolved = {
       scrollDelay: 200,
@@ -880,6 +893,7 @@ export class GhostCursor {
     }, optionsResolved)
   }
 
+  /** Gets the element via a selector. Can use an XPath. */
   public async getElement (selector: string | ElementHandle, options?: GetElementOptions): Promise<ElementHandle<Element>> {
     const optionsResolved = {
       ...this.defaultOptions?.getElement,
