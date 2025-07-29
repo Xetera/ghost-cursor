@@ -464,28 +464,13 @@ export class GhostCursor {
     }
   }
 
-  /** Access the internal CDP client */
-  private getCDPClient (): CDPSession {
-    return getCDPClient(this.page)
-  }
-
-  /** Get correct position of Inline elements (elements like `<a>`). Has fallback. */
-  private async getElementBox (element: ElementHandle, relativeToMainFrame: boolean = true): Promise<BoundingBox> {
-    return await getElementBox(this.page, element, relativeToMainFrame)
-  }
-
-  /** Get a random point on the browser window */
-  private async getRandomPagePoint (): Promise<Vector> {
-    return await getRandomPagePoint(this.page)
-  }
-
   /** Move the mouse to a new location */
   private async moveMouse (
     newLocation: BoundingBox | Vector,
     options?: PathOptions,
     abortOnMove: boolean = false
   ): Promise<void> {
-    const cdpClient = this.getCDPClient()
+    const cdpClient = getCDPClient(this.page)
     const vectors = path(this.location, newLocation, options)
 
     for (const v of vectors) {
@@ -526,7 +511,7 @@ export class GhostCursor {
 
     try {
       if (!this.moving) {
-        const rand = await this.getRandomPagePoint()
+        const rand = await getRandomPagePoint(this.page)
         await this.moveMouse(rand, optionsResolved, true)
       }
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
@@ -576,7 +561,7 @@ export class GhostCursor {
     try {
       await delay(optionsResolved.hesitate)
 
-      const cdpClient = this.getCDPClient()
+      const cdpClient = getCDPClient(this.page)
       const dispatchParams: Omit<Protocol.Input.DispatchMouseEventRequest, 'type'> = {
         x: this.location.x,
         y: this.location.y,
@@ -620,7 +605,7 @@ export class GhostCursor {
       // Make sure the object is in view
       await this.scrollIntoView(elem, optionsResolved)
 
-      const box = await this.getElementBox(elem)
+      const box = await getElementBox(this.page, elem)
       const destination = (optionsResolved.destination !== undefined)
         ? add(box, optionsResolved.destination)
         : getRandomBoxPoint(box, optionsResolved)
@@ -644,7 +629,7 @@ export class GhostCursor {
 
       this.toggleRandomMove(true)
 
-      const newBoundingBox = await this.getElementBox(elem)
+      const newBoundingBox = await getElementBox(this.page, elem)
 
       // It's possible that the element that is being moved towards
       // has moved to a different location by the time
@@ -709,7 +694,7 @@ export class GhostCursor {
       }
     ))
 
-    const elemBoundingBox = await this.getElementBox(elem) // is relative to viewport
+    const elemBoundingBox = await getElementBox(this.page, elem) // is relative to viewport
     const elemBox = {
       top: elemBoundingBox.y,
       left: elemBoundingBox.x,
@@ -773,7 +758,7 @@ export class GhostCursor {
     }
 
     try {
-      const cdpClient = this.getCDPClient()
+      const cdpClient = getCDPClient(this.page)
 
       if (scrollSpeed === 100 && optionsResolved.inViewportMargin <= 0) {
         try {
@@ -807,7 +792,7 @@ export class GhostCursor {
 
     const scrollSpeed = clamp(optionsResolved.scrollSpeed, 1, 100)
 
-    const cdpClient = this.getCDPClient()
+    const cdpClient = getCDPClient(this.page)
 
     let deltaX = delta.x ?? 0
     let deltaY = delta.y ?? 0
