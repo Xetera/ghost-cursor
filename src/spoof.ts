@@ -467,9 +467,9 @@ export const createCursor = (
   // Initial state: mouse is not moving
   let moving: boolean = false
 
-  /** Move the mouse over a number of vectors */
+  /** Move the mouse to a point, getting the vectors via `path(previous, newLocation, options)`  */
   const moveMouse = async (
-    newLocation: BoundingBox | Vector,
+    newLocation: Vector | BoundingBox,
     options?: PathOptions,
     abortOnMove: boolean = false
   ): Promise<void> => {
