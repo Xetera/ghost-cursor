@@ -7,6 +7,12 @@ export interface Vector {
 export interface TimedVector extends Vector {
   timestamp: number
 }
+
+export interface Rectangle extends Vector {
+  width: number
+  height: number
+}
+
 export const origin: Vector = { x: 0, y: 0 }
 
 // maybe i should've just imported a vector library lol
