@@ -252,14 +252,14 @@ export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   })
 }
 
-/** Get correct position of Inline elements (elements like `<a>`) */
+/** Get correct position of Inline elements (elements like `<a>`). Has fallback. */
 export const getElementBox = async (
   page: Page,
   element: ElementHandle,
   relativeToMainFrame: boolean = true): Promise<BoundingBox> => {
   try {
     const objectId = element.remoteObject().objectId
-    if (objectId === undefined) throw new Error('do fallback')
+    if (objectId === undefined) throw new Error('Element objectId is undefined, falling back to alternative methods')
 
     const quads = await getCDPClient(page).send('DOM.getContentQuads', { objectId })
     const elementBox: BoundingBox = {
@@ -271,34 +271,35 @@ export const getElementBox = async (
     if (!relativeToMainFrame) {
       const elementFrame = await element.contentFrame()
       const iframes = await elementFrame?.parentFrame()?.$$('xpath/.//iframe')
-      let frame: ElementHandle<Node> | undefined
-      if (iframes !== undefined) {
+      if (iframes !== undefined && iframes !== null) {
+        let frame: ElementHandle<Node> | undefined
         for (const iframe of iframes) {
           if ((await iframe.contentFrame()) === elementFrame) {
             frame = iframe
           }
         }
-      }
-      if (frame != null) {
-        const frameBox = await frame.boundingBox()
-        if (frameBox !== null) {
-          elementBox.x = elementBox.x - frameBox.x
-          elementBox.y = elementBox.y - frameBox.y
+        if (frame !== undefined && frame != null) {
+          const frameBox = await frame.boundingBox()
+          if (frameBox !== null) {
+            elementBox.x -= frameBox.x
+            elementBox.y -= frameBox.y
+          }
         }
       }
     }
 
     return elementBox
   } catch {
-    log('Quads not found, trying regular boundingBox')
-    const elementBox = await element.boundingBox()
-    if (elementBox === null) {
-      // fallback
-      return await element.evaluate((el: Element) =>
+    try {
+      log('Quads not found, trying regular boundingBox')
+      const elementBox = await element.boundingBox()
+      if (elementBox === null) throw new Error('Element boundingBox is null, falling back to getBoundingClientRect')
+      return elementBox
+    } catch {
+      log('BoundingBox null, using getBoundingClientRect')
+      return await element.evaluate((el) =>
         el.getBoundingClientRect() as BoundingBox
       )
-    } else {
-      return elementBox
     }
   }
 }
