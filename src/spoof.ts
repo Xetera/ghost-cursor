@@ -313,9 +313,9 @@ export function path (
   end: Vector | BoundingBox,
   /**
    * Additional options for generating the path.
-   * Can also be a number which will set `spreadOverride` (TODO: remove this in next major version change,
-   * no need to not just allow object.)
+   * Can also be a number which will set `spreadOverride`.
    */
+  // TODO: remove number arg in next major version change, fine to just allow `spreadOverride` in object.
   options?: number | PathOptions): Vector[] | TimedVector[] {
   const optionsResolved: PathOptions = typeof options === 'number'
     ? { spreadOverride: options }
@@ -427,25 +427,25 @@ export class GhostCursor {
     }:
     {
       /**
-         * Cursor start position.
-         * @default { x: 0, y: 0 }
-         */
+           * Cursor start position.
+           * @default { x: 0, y: 0 }
+           */
       start?: Vector
       /**
-         * Initially perform random movements.
-         * If `move`,`click`, etc. is performed, these random movements end.
-         * @default false
-         */
+           * Initially perform random movements.
+           * If `move`,`click`, etc. is performed, these random movements end.
+           * @default false
+           */
       performRandomMoves?: boolean
       /**
-         * Set custom default options for cursor action functions.
-         * Default values are described in the type JSdocs.
-         */
+           * Set custom default options for cursor action functions.
+           * Default values are described in the type JSdocs.
+           */
       defaultOptions?: DefaultOptions
       /**
-         * Whether cursor should be made visible using `installMouseHelper`.
-         * @default false
-         */
+           * Whether cursor should be made visible using `installMouseHelper`.
+           * @default false
+           */
       visible?: boolean
     } = {}
   ) {
@@ -539,7 +539,10 @@ export class GhostCursor {
   }
 
   /** Simulates a mouse click at the specified selector or element. */
-  public async click (selector?: string | ElementHandle, options?: ClickOptions): Promise<void> {
+  public async click (
+    selector?: string | ElementHandle,
+    options?: ClickOptions
+  ): Promise<void> {
     const optionsResolved = {
       moveDelay: 2000,
       hesitate: 0,
@@ -585,7 +588,10 @@ export class GhostCursor {
   }
 
   /** Moves the mouse to the specified selector or element. */
-  public async move (selector: string | ElementHandle, options?: MoveOptions): Promise<void> {
+  public async move (
+    selector: string | ElementHandle,
+    options?: MoveOptions
+  ): Promise<void> {
     const optionsResolved = {
       moveDelay: 0,
       maxTries: 10,
@@ -650,7 +656,10 @@ export class GhostCursor {
   }
 
   /** Moves the mouse to the specified destination point. */
-  public async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
+  public async moveTo (
+    destination: Vector,
+    options?: MoveToOptions
+  ): Promise<void> {
     const optionsResolved = {
       moveDelay: 0,
       randomizeMoveDelay: true,
@@ -667,7 +676,10 @@ export class GhostCursor {
   }
 
   /** Scrolls the element into view. If already in view, no scroll occurs. */
-  public async scrollIntoView (selector: string | ElementHandle, options?: ScrollIntoViewOptions): Promise<void> {
+  public async scrollIntoView (
+    selector: string | ElementHandle,
+    options?: ScrollIntoViewOptions
+  ): Promise<void> {
     const optionsResolved = {
       scrollDelay: 200,
       scrollSpeed: 100,
@@ -786,7 +798,10 @@ export class GhostCursor {
   }
 
   /** Scrolls the page the distance set by `delta`. */
-  public async scroll (delta: Partial<Vector>, options?: ScrollOptions): Promise<void> {
+  public async scroll (
+    delta: Partial<Vector>,
+    options?: ScrollOptions
+  ): Promise<void> {
     const optionsResolved = {
       scrollDelay: 200,
       scrollSpeed: 100,
@@ -847,7 +862,10 @@ export class GhostCursor {
   }
 
   /** Scrolls to the specified destination point. */
-  public async scrollTo (destination: ScrollToDestination, options?: ScrollOptions): Promise<void> {
+  public async scrollTo (
+    destination: ScrollToDestination,
+    options?: ScrollOptions
+  ): Promise<void> {
     const optionsResolved = {
       scrollDelay: 200,
       scrollSpeed: 100,
@@ -891,7 +909,10 @@ export class GhostCursor {
   }
 
   /** Gets the element via a selector. Can use an XPath. */
-  public async getElement (selector: string | ElementHandle, options?: GetElementOptions): Promise<ElementHandle<Element>> {
+  public async getElement (
+    selector: string | ElementHandle,
+    options?: GetElementOptions
+  ): Promise<ElementHandle<Element>> {
     const optionsResolved = {
       ...this.defaultOptions?.getElement,
       ...options
@@ -927,8 +948,8 @@ export class GhostCursor {
 
 /**
  * @deprecated
- * Remove on next major version change. Prefer to just to `new GhostCursor` instead of this function.
- * Is here so that our change to the GhostCursor class doesn't break things.
+ * TODO: Remove on next major version change. Prefer to just do `new GhostCursor` instead of this function.
+ * Is here because removing would be breaking.
  */
 export const createCursor = (
   page: Page,
