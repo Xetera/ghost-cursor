@@ -602,13 +602,12 @@ export const createCursor = (
       } satisfies MoveOptions
 
       const wasRandom = !moving
+      actions.toggleRandomMove(false)
 
       const go = async (iteration: number): Promise<void> => {
         if (iteration > (optionsResolved.maxTries)) {
           throw Error('Could not mouse-over element within enough tries')
         }
-
-        actions.toggleRandomMove(false)
 
         const elem = await this.getElement(selector, optionsResolved)
 
@@ -636,8 +635,6 @@ export const createCursor = (
           // go directly to the box, no overshoot
           await moveMouse(destination, optionsResolved)
         }
-
-        actions.toggleRandomMove(true)
 
         const newBoundingBox = await getElementBox(page, elem)
 
