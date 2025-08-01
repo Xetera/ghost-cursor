@@ -11,9 +11,12 @@ import {
   overshoot,
   add,
   clamp,
-  scale
+  scale,
+  extrapolate
 } from './math'
-export { default as installMouseHelper } from './mouse-helper'
+import { installMouseHelper } from './mouse-helper'
+
+export { installMouseHelper }
 
 const log = debug('ghost-cursor')
 
@@ -50,9 +53,9 @@ export interface ScrollOptions {
    */
   readonly scrollSpeed?: number
   /**
- * Time to wait after scrolling.
- * @default 200
- */
+   * Time to wait after scrolling.
+   * @default 200
+   */
   readonly scrollDelay?: number
 }
 
@@ -158,31 +161,45 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
 export type ScrollToDestination = Partial<Vector> | 'top' | 'bottom' | 'left' | 'right'
 
 export interface GhostCursor {
+  /** Toggles random mouse movements on or off. */
   toggleRandomMove: (random: boolean) => void
+  /** Simulates a mouse click at the specified selector or element. */
   click: (
     selector?: string | ElementHandle,
     options?: ClickOptions
   ) => Promise<void>
+  /** Moves the mouse to the specified selector or element. */
   move: (
     selector: string | ElementHandle,
     options?: MoveOptions
   ) => Promise<void>
+  /** Moves the mouse to the specified destination point. */
   moveTo: (
     destination: Vector,
     options?: MoveToOptions) => Promise<void>
+  /** Scrolls the element into view. If already in view, no scroll occurs. */
   scrollIntoView: (
     selector: ElementHandle,
     options?: ScrollIntoViewOptions) => Promise<void>
+  /** Scrolls to the specified destination point. */
   scrollTo: (
     destination: ScrollToDestination,
     options?: ScrollOptions) => Promise<void>
+  /** Scrolls the page the distance set by `delta`. */
   scroll: (
     delta: Partial<Vector>,
     options?: ScrollOptions) => Promise<void>
+  /** Gets the element via a selector. Can use an XPath. */
   getElement: (
     selector: string | ElementHandle,
     options?: GetElementOptions) => Promise<ElementHandle<Element>>
+  /** Get current location of the cursor. */
   getLocation: () => Vector
+  /**
+    * Make the cursor no longer visible.
+    * Defined only if `visible=true` was passed.
+    */
+  removeMouseHelper?: Promise<() => Promise<void>>
 }
 
 /** Helper function to wait a specified number of milliseconds  */
@@ -227,15 +244,15 @@ const getRandomBoxPoint = (
 }
 
 /** The function signature to access the internal CDP client changed in puppeteer 14.4.1 */
-const getCDPClient = (page: any): CDPSession => typeof page._client === 'function' ? page._client() : page._client
+export const getCDPClient = (page: Page): CDPSession =>
+  typeof (page as any)._client === 'function'
+    ? (page as any)._client()
+    : (page as any)._client
 
 /** Get a random point on a browser window */
 export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   const targetId: string = (page.target() as any)._targetId
-  const window = await getCDPClient(page).send(
-    'Browser.getWindowForTarget',
-    { targetId }
-  )
+  const window = await getCDPClient(page).send('Browser.getWindowForTarget', { targetId })
   return getRandomBoxPoint({
     x: origin.x,
     y: origin.y,
@@ -244,22 +261,17 @@ export const getRandomPagePoint = async (page: Page): Promise<Vector> => {
   })
 }
 
-/** Using this method to get correct position of Inline elements (elements like `<a>`) */
-const getElementBox = async (
+/** Get correct position of Inline elements (elements like `<a>`). Has fallback. */
+export const getElementBox = async (
   page: Page,
   element: ElementHandle,
-  relativeToMainFrame: boolean = true
-): Promise<BoundingBox | null> => {
-  const objectId = element.remoteObject().objectId
-  if (objectId === undefined) {
-    return null
-  }
-
+  relativeToMainFrame: boolean = true): Promise<BoundingBox> => {
   try {
-    const quads = await getCDPClient(page).send('DOM.getContentQuads', {
-      objectId
-    })
-    const elementBox = {
+    const objectId = element.remoteObject().objectId
+    if (objectId === undefined) throw new Error('Element objectId is undefined, falling back to alternative methods')
+
+    const quads = await getCDPClient(page).send('DOM.getContentQuads', { objectId })
+    const elementBox: BoundingBox = {
       x: quads.quads[0][0],
       y: quads.quads[0][1],
       width: quads.quads[0][4] - quads.quads[0][0],
@@ -267,35 +279,46 @@ const getElementBox = async (
     }
     if (!relativeToMainFrame) {
       const elementFrame = await element.contentFrame()
-      const iframes =
-        elementFrame != null
-          ? await elementFrame.parentFrame()?.$$('xpath/.//iframe')
-          : null
-      let frame: ElementHandle<Node> | undefined
-      if (iframes != null) {
+      const iframes = await elementFrame?.parentFrame()?.$$('xpath/.//iframe')
+      if (iframes !== undefined && iframes !== null) {
+        let frame: ElementHandle<Node> | undefined
         for (const iframe of iframes) {
-          if ((await iframe.contentFrame()) === elementFrame) frame = iframe
+          if ((await iframe.contentFrame()) === elementFrame) {
+            frame = iframe
+          }
         }
-      }
-      if (frame != null) {
-        const boundingBox = await frame.boundingBox()
-        elementBox.x =
-          boundingBox !== null ? elementBox.x - boundingBox.x : elementBox.x
-        elementBox.y =
-          boundingBox !== null ? elementBox.y - boundingBox.y : elementBox.y
+        if (frame !== undefined && frame != null) {
+          const frameBox = await frame.boundingBox()
+          if (frameBox !== null) {
+            elementBox.x -= frameBox.x
+            elementBox.y -= frameBox.y
+          }
+        }
       }
     }
 
     return elementBox
-  } catch (_) {
-    log('Quads not found, trying regular boundingBox')
-    return await element.boundingBox()
+  } catch {
+    try {
+      log('Quads not found, trying regular boundingBox')
+      const elementBox = await element.boundingBox()
+      if (elementBox === null) throw new Error('Element boundingBox is null, falling back to getBoundingClientRect')
+      return elementBox
+    } catch {
+      log('BoundingBox null, using getBoundingClientRect')
+      return await element.evaluate((el) =>
+        el.getBoundingClientRect() as BoundingBox
+      )
+    }
   }
 }
 
-export function path (point: Vector, target: Vector, options?: number | PathOptions): Vector[] | TimedVector[]
-export function path (point: Vector, target: BoundingBox, options?: number | PathOptions): Vector[] | TimedVector[]
-export function path (start: Vector, end: BoundingBox | Vector, options?: number | PathOptions): Vector[] | TimedVector[] {
+/** Generates a set of points for mouse movement between two coordinates. */
+export function path (
+  start: Vector,
+  end: Vector | BoundingBox,
+  /** Additional options for generating the path. Can also be a number which will set `spreadOverride`. */
+  options?: number | PathOptions): Vector[] | TimedVector[] {
   const optionsResolved: PathOptions = typeof options === 'number'
     ? { spreadOverride: options }
     : { ...options }
@@ -339,18 +362,22 @@ const generateTimestamps = (vectors: Vector[], options?: PathOptions): TimedVect
     return Math.round(total / speed)
   }
 
-  const timedVectors: TimedVector[] = vectors.map((vector) => ({ ...vector, timestamp: 0 }))
+  const timedVectors: TimedVector[] = []
 
-  for (let i = 0; i < timedVectors.length; i++) {
-    const P0 = i === 0 ? timedVectors[i] : timedVectors[i - 1]
-    const P1 = timedVectors[i]
-    const P2 = i === timedVectors.length - 1 ? timedVectors[i] : timedVectors[i + 1]
-    const P3 = i === timedVectors.length - 1 ? timedVectors[i] : timedVectors[i + 1]
-    const time = timeToMove(P0, P1, P2, P3, timedVectors.length)
+  for (let i = 0; i < vectors.length; i++) {
+    if (i === 0) {
+      timedVectors.push({ ...vectors[i], timestamp: Date.now() })
+    } else {
+      const P0 = vectors[i - 1]
+      const P1 = vectors[i]
+      const P2 = i + 1 < vectors.length ? vectors[i + 1] : extrapolate(P0, P1)
+      const P3 = i + 2 < vectors.length ? vectors[i + 2] : extrapolate(P1, P2)
+      const time = timeToMove(P0, P1, P2, P3, vectors.length)
 
-    timedVectors[i] = {
-      ...timedVectors[i],
-      timestamp: i === 0 ? Date.now() : timedVectors[i - 1].timestamp + time
+      timedVectors.push({
+        ...vectors[i],
+        timestamp: timedVectors[i - 1].timestamp + time
+      })
     }
   }
 
@@ -367,20 +394,6 @@ const intersectsElement = (vec: Vector, box: BoundingBox): boolean => {
     vec.y > box.y &&
     vec.y <= box.y + box.height
   )
-}
-
-const boundingBoxWithFallback = async (
-  page: Page,
-  elem: ElementHandle<Element>
-): Promise<BoundingBox> => {
-  let box = await getElementBox(page, elem)
-  if (box == null) {
-    box = (await elem.evaluate((el: Element) =>
-      el.getBoundingClientRect()
-    )) as BoundingBox
-  }
-
-  return box
 }
 
 export const createCursor = (
@@ -427,7 +440,8 @@ export const createCursor = (
      * @default GetElementOptions
      */
     getElement?: GetElementOptions
-  } = {}
+  } = {},
+  visible: boolean = false
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const OVERSHOOT_SPREAD = 10
@@ -437,7 +451,7 @@ export const createCursor = (
   // Initial state: mouse is not moving
   let moving: boolean = false
 
-  // Move the mouse over a number of vectors
+  /** Move the mouse over a number of vectors */
   const tracePath = async (
     vectors: Iterable<Vector | TimedVector>,
     abortOnMove: boolean = false
@@ -470,7 +484,7 @@ export const createCursor = (
       }
     }
   }
-  // Start random mouse movements. Function recursively calls itself
+  /** Start random mouse movements. Function recursively calls itself. */
   const randomMove = async (options?: RandomMoveOptions): Promise<void> => {
     const optionsResolved = {
       moveDelay: 2000,
@@ -496,14 +510,17 @@ export const createCursor = (
   }
 
   const actions: GhostCursor = {
+    /** Toggles random mouse movements on or off. */
     toggleRandomMove (random: boolean): void {
       moving = !random
     },
 
+    /** Get current location of the cursor. */
     getLocation (): Vector {
       return previous
     },
 
+    /** Simulates a mouse click at the specified selector or element. */
     async click (
       selector?: string | ElementHandle,
       options?: ClickOptions
@@ -559,6 +576,7 @@ export const createCursor = (
       actions.toggleRandomMove(wasRandom)
     },
 
+    /** Moves the mouse to the specified selector or element. */
     async move (
       selector: string | ElementHandle,
       options?: MoveOptions
@@ -586,7 +604,7 @@ export const createCursor = (
         // Make sure the object is in view
         await this.scrollIntoView(elem, optionsResolved)
 
-        const box = await boundingBoxWithFallback(page, elem)
+        const box = await getElementBox(page, elem)
         const { height, width } = box
         const destination = (optionsResolved.destination !== undefined)
           ? add(box, optionsResolved.destination)
@@ -616,7 +634,7 @@ export const createCursor = (
 
         actions.toggleRandomMove(true)
 
-        const newBoundingBox = await boundingBoxWithFallback(page, elem)
+        const newBoundingBox = await getElementBox(page, elem)
 
         // It's possible that the element that is being moved towards
         // has moved to a different location by the time
@@ -632,6 +650,7 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
+    /** Moves the mouse to the specified destination point. */
     async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
       const optionsResolved = {
         moveDelay: 0,
@@ -648,6 +667,7 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
     },
 
+    /** Scrolls the element into view. If already in view, no scroll occurs. */
     async scrollIntoView (selector: string | ElementHandle, options?: ScrollIntoViewOptions): Promise<void> {
       const optionsResolved = {
         scrollDelay: 200,
@@ -679,7 +699,7 @@ export const createCursor = (
         }
       ))
 
-      const elemBoundingBox = await boundingBoxWithFallback(page, elem) // is relative to viewport
+      const elemBoundingBox = await getElementBox(page, elem) // is relative to viewport
       const elemBox = {
         top: elemBoundingBox.y,
         left: elemBoundingBox.x,
@@ -766,6 +786,7 @@ export const createCursor = (
       }
     },
 
+    /** Scrolls the page the distance set by `delta`. */
     async scroll (delta: Partial<Vector>, options?: ScrollOptions) {
       const optionsResolved = {
         scrollDelay: 200,
@@ -826,6 +847,7 @@ export const createCursor = (
       await delay(optionsResolved.scrollDelay)
     },
 
+    /** Scrolls to the specified destination point. */
     async scrollTo (destination: ScrollToDestination, options?: ScrollOptions) {
       const optionsResolved = {
         scrollDelay: 200,
@@ -869,6 +891,7 @@ export const createCursor = (
       }, optionsResolved)
     },
 
+    /** Gets the element via a selector. Can use an XPath. */
     async getElement (selector: string | ElementHandle, options?: GetElementOptions): Promise<ElementHandle<Element>> {
       const optionsResolved = {
         ...defaultOptions?.getElement,
@@ -902,6 +925,15 @@ export const createCursor = (
       return elem
     }
   }
+
+  /**
+    * Make the cursor no longer visible.
+    * Defined only if `visible=true` was passed.
+    */
+  actions.removeMouseHelper = visible
+    ? installMouseHelper(page).then(
+      ({ removeMouseHelper }) => removeMouseHelper)
+    : undefined
 
   // Start random mouse movements. Do not await the promise but return immediately
   if (performRandomMoves) {

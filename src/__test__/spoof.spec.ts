@@ -2,7 +2,7 @@ import type { ElementHandle, Page } from 'puppeteer'
 import { type ClickOptions, createCursor, GhostCursor } from '../spoof'
 import { join } from 'path'
 import { readFileSync } from 'fs'
-import installMouseHelper from '../mouse-helper'
+import { installMouseHelper } from '../mouse-helper'
 
 declare const page: Page
 
