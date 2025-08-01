@@ -516,7 +516,6 @@ export const createCursor = (
       if (!moving) {
         const rand = await getRandomPagePoint(page)
         await moveMouse(rand, optionsResolved, true)
-        previous = rand
       }
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
       randomMove(options).then(
@@ -617,30 +616,26 @@ export const createCursor = (
         await this.scrollIntoView(elem, optionsResolved)
 
         const box = await getElementBox(page, elem)
-        const { height, width } = box
         const destination = (optionsResolved.destination !== undefined)
           ? add(box, optionsResolved.destination)
           : getRandomBoxPoint(box, optionsResolved)
-        const dimensions = { height, width }
-        const overshooting = shouldOvershoot(
+        if (shouldOvershoot(
           previous,
           destination,
           optionsResolved.overshootThreshold
-        )
-        const to = overshooting
-          ? overshoot(destination, OVERSHOOT_RADIUS)
-          : destination
+        )) {
+          // overshoot
+          await moveMouse(overshoot(destination, OVERSHOOT_RADIUS), optionsResolved)
 
-        await moveMouse(to, optionsResolved)
-
-        if (overshooting) {
-          await moveMouse({ ...dimensions, ...destination }, {
+          // then go to the box
+          await moveMouse({ ...box, ...destination }, {
             ...optionsResolved,
             spreadOverride: OVERSHOOT_SPREAD
           })
+        } else {
+          // go directly to the box, no overshoot
+          await moveMouse(destination, optionsResolved)
         }
-
-        previous = destination
 
         actions.toggleRandomMove(true)
 
@@ -649,7 +644,7 @@ export const createCursor = (
         // It's possible that the element that is being moved towards
         // has moved to a different location by the time
         // the the time the mouseover animation finishes
-        if (!intersectsElement(to, newBoundingBox)) {
+        if (!intersectsElement(previous, newBoundingBox)) {
           return await go(iteration + 1)
         }
       }
