@@ -462,7 +462,8 @@ export const createCursor = (
   // this is kind of arbitrary, not a big fan but it seems to work
   const OVERSHOOT_SPREAD = 10
   const OVERSHOOT_RADIUS = 120
-  let previous: Vector = start
+  /** Location of the cursor. */
+  let location: Vector = start
 
   // Initial state: mouse is not moving
   let moving: boolean = false
@@ -474,7 +475,7 @@ export const createCursor = (
     abortOnMove: boolean = false
   ): Promise<void> => {
     const cdpClient = getCDPClient(page)
-    const vectors = path(previous, newLocation, options)
+    const vectors = path(location, newLocation, options)
 
     for (const v of vectors) {
       try {
@@ -493,7 +494,7 @@ export const createCursor = (
 
         await cdpClient.send('Input.dispatchMouseEvent', dispatchParams)
 
-        previous = v
+        location = v
       } catch (error) {
         // Exit function if the browser is no longer connected
         if (!page.browser().isConnected()) return
@@ -535,7 +536,7 @@ export const createCursor = (
 
     /** Get current location of the cursor. */
     getLocation (): Vector {
-      return previous
+      return location
     },
 
     /** Simulates a mouse click at the specified selector or element. */
@@ -570,8 +571,8 @@ export const createCursor = (
 
         const cdpClient = getCDPClient(page)
         const dispatchParams: Omit<Protocol.Input.DispatchMouseEventRequest, 'type'> = {
-          x: previous.x,
-          y: previous.y,
+          x: location.x,
+          y: location.y,
           button: optionsResolved.button,
           clickCount: optionsResolved.clickCount
         }
@@ -619,7 +620,7 @@ export const createCursor = (
           ? add(box, optionsResolved.destination)
           : getRandomBoxPoint(box, optionsResolved)
         if (shouldOvershoot(
-          previous,
+          location,
           destination,
           optionsResolved.overshootThreshold
         )) {
@@ -641,7 +642,7 @@ export const createCursor = (
         // It's possible that the element that is being moved towards
         // has moved to a different location by the time
         // the the time the mouseover animation finishes
-        if (!intersectsElement(previous, newBoundingBox)) {
+        if (!intersectsElement(location, newBoundingBox)) {
           return await go(iteration + 1)
         }
       }
@@ -850,8 +851,8 @@ export const createCursor = (
           type: 'mouseWheel',
           deltaX,
           deltaY,
-          x: previous.x,
-          y: previous.y
+          x: location.x,
+          y: location.y
         } satisfies Protocol.Input.DispatchMouseEventRequest)
       }
 
