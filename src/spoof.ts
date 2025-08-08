@@ -202,32 +202,39 @@ export interface GhostCursor {
   /** Simulates a mouse click at the specified selector or element. */
   click: (
     selector?: string | ElementHandle,
+    /** @default defaultOptions.click */
     options?: ClickOptions
   ) => Promise<void>
   /** Moves the mouse to the specified selector or element. */
   move: (
     selector: string | ElementHandle,
+    /** @default defaultOptions.move */
     options?: MoveOptions
   ) => Promise<void>
   /** Moves the mouse to the specified destination point. */
   moveTo: (
     destination: Vector,
+    /** @default defaultOptions.moveTo */
     options?: MoveToOptions) => Promise<void>
   /** Scrolls the element into view. If already in view, no scroll occurs. */
   scrollIntoView: (
     selector: ElementHandle,
+    /** @default defaultOptions.scroll */
     options?: ScrollIntoViewOptions) => Promise<void>
   /** Scrolls to the specified destination point. */
   scrollTo: (
     destination: ScrollToDestination,
+    /** @default defaultOptions.scroll */
     options?: ScrollOptions) => Promise<void>
   /** Scrolls the page the distance set by `delta`. */
   scroll: (
     delta: Partial<Vector>,
+    /** @default defaultOptions.scroll */
     options?: ScrollOptions) => Promise<void>
   /** Gets the element via a selector. Can use an XPath. */
   getElement: (
     selector: string | ElementHandle,
+    /** @default defaultOptions.getElement */
     options?: GetElementOptions) => Promise<ElementHandle<Element>>
   /** Get current location of the cursor. */
   getLocation: () => Vector
