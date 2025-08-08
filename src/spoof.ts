@@ -181,7 +181,7 @@ export interface GhostCursor {
     options?: MoveToOptions) => Promise<void>
   /** Moves the mouse by a specified amount */
   moveBy: (
-    delta: Vector,
+    delta: Partial<Vector>,
     options?: MoveToOptions
   ) => Promise<void>
   /** Scrolls the element into view. If already in view, no scroll occurs. */
@@ -696,8 +696,8 @@ export const createCursor = (
     },
 
     /** Moves the mouse by a specified amount */
-    async moveBy (delta: Vector, options?: MoveToOptions): Promise<void> {
-      await this.moveTo(add(previous, delta), options)
+    async moveBy (delta: Partial<Vector>, options?: MoveToOptions): Promise<void> {
+      await this.moveTo(add(previous, { x: 0, y: 0, ...delta }), options)
     },
 
     /** Scrolls the element into view. If already in view, no scroll occurs. */
