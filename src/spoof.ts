@@ -160,6 +160,8 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
 
 export type ScrollToDestination = Partial<Vector> | 'top' | 'bottom' | 'left' | 'right'
 
+export type MouseButtonOptions = Pick<ClickOptions, 'button' | 'clickCount'>
+
 export interface GhostCursor {
   /** Toggles random mouse movements on or off. */
   toggleRandomMove: (random: boolean) => void
@@ -177,6 +179,11 @@ export interface GhostCursor {
   moveTo: (
     destination: Vector,
     options?: MoveToOptions) => Promise<void>
+  /** Moves the mouse by a specified amount */
+  moveBy: (
+    delta: Vector,
+    options?: MoveToOptions
+  ) => Promise<void>
   /** Scrolls the element into view. If already in view, no scroll occurs. */
   scrollIntoView: (
     selector: ElementHandle,
@@ -189,6 +196,10 @@ export interface GhostCursor {
   scroll: (
     delta: Partial<Vector>,
     options?: ScrollOptions) => Promise<void>
+  /** Mouse button down */
+  mouseDown: (options?: MouseButtonOptions) => Promise<void>
+  /** Mouse button up (release) */
+  mouseUp: (options?: MouseButtonOptions) => Promise<void>
   /** Gets the element via a selector. Can use an XPath. */
   getElement: (
     selector: string | ElementHandle,
@@ -509,6 +520,27 @@ export const createCursor = (
     }
   }
 
+  const mouseButtonAction = async (
+    action: Protocol.Input.DispatchMouseEventRequest['type'],
+    options?: MouseButtonOptions
+  ): Promise<void> => {
+    const optionsResolved = {
+      button: 'left',
+      clickCount: 1,
+      ...defaultOptions?.click,
+      ...options
+    } satisfies MouseButtonOptions
+
+    const cdpClient = getCDPClient(page)
+    await cdpClient.send('Input.dispatchMouseEvent', {
+      x: previous.x,
+      y: previous.y,
+      button: optionsResolved.button,
+      clickCount: optionsResolved.clickCount,
+      type: action
+    })
+  }
+
   const actions: GhostCursor = {
     /** Toggles random mouse movements on or off. */
     toggleRandomMove (random: boolean): void {
@@ -550,16 +582,9 @@ export const createCursor = (
       try {
         await delay(optionsResolved.hesitate)
 
-        const cdpClient = getCDPClient(page)
-        const dispatchParams: Omit<Protocol.Input.DispatchMouseEventRequest, 'type'> = {
-          x: previous.x,
-          y: previous.y,
-          button: optionsResolved.button,
-          clickCount: optionsResolved.clickCount
-        }
-        await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mousePressed' })
+        await this.mouseDown()
         await delay(optionsResolved.waitForClick)
-        await cdpClient.send('Input.dispatchMouseEvent', { ...dispatchParams, type: 'mouseReleased' })
+        await this.mouseUp()
       } catch (error) {
         log('Warning: could not click mouse, error message:', error)
       }
@@ -567,6 +592,16 @@ export const createCursor = (
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
 
       actions.toggleRandomMove(wasRandom)
+    },
+
+    /** Mouse button down */
+    async mouseDown (options?: MouseButtonOptions): Promise<void> {
+      await mouseButtonAction('mousePressed', options)
+    },
+
+    /** Mouse button up (release) */
+    async mouseUp (options?: MouseButtonOptions): Promise<void> {
+      await mouseButtonAction('mouseReleased', options)
     },
 
     /** Moves the mouse to the specified selector or element. */
@@ -658,6 +693,11 @@ export const createCursor = (
       actions.toggleRandomMove(wasRandom)
 
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+    },
+
+    /** Moves the mouse by a specified amount */
+    async moveBy (delta: Vector, options?: MoveToOptions): Promise<void> {
+      await this.moveTo(add(previous, delta), options)
     },
 
     /** Scrolls the element into view. If already in view, no scroll occurs. */
