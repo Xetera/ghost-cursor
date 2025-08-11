@@ -538,7 +538,10 @@ export class GhostCursor {
     return this.location
   }
 
-  /** Simulates a mouse click at the specified selector or element. */
+  /**
+   * Simulates a mouse click at the specified selector or element.
+   * Default is to click at current location, don't move.
+   */
   public async click (
     selector?: string | ElementHandle,
     options?: ClickOptions
