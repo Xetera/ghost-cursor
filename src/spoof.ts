@@ -416,7 +416,7 @@ export class GhostCursor {
 
   /** Location of the cursor. */
   private location: Vector
-  /** Whethere mouse is moving. Initial state: not moving. */
+  /** Whether mouse is moving. Initial state: not moving. */
   private moving: boolean = false
 
   private static readonly OVERSHOOT_SPREAD = 10
@@ -431,25 +431,25 @@ export class GhostCursor {
     }:
     {
       /**
-         * Cursor start position.
-         * @default { x: 0, y: 0 }
-         */
+           * Cursor start position.
+           * @default { x: 0, y: 0 }
+           */
       start?: Vector
       /**
-         * Initially perform random movements.
-         * If `move`,`click`, etc. is performed, these random movements end.
-         * @default false
-         */
+           * Initially perform random movements.
+           * If `move`,`click`, etc. is performed, these random movements end.
+           * @default false
+           */
       performRandomMoves?: boolean
       /**
-         * Set custom default options for cursor action functions.
-         * Default values are described in the type JSdocs.
-         */
+           * Set custom default options for cursor action functions.
+           * Default values are described in the type JSdocs.
+           */
       defaultOptions?: DefaultOptions
       /**
-         * Whether cursor should be made visible using `installMouseHelper`.
-         * @default false
-         */
+           * Whether cursor should be made visible using `installMouseHelper`.
+           * @default false
+           */
       visible?: boolean
     } = {}
   ) {
@@ -459,6 +459,7 @@ export class GhostCursor {
     this.defaultOptions = defaultOptions
 
     if (visible) {
+      // Install mouse helper (visible mouse). Do not await the promise but return immediately
       this.removeMouseHelper = installMouseHelper(page).then(
         ({ removeMouseHelper }) => removeMouseHelper)
     }
@@ -508,6 +509,30 @@ export class GhostCursor {
     }
   }
 
+  /** Start random mouse movements. Function recursively calls itself. */
+  private async randomMove (options?: RandomMoveOptions): Promise<void> {
+    const optionsResolved = {
+      moveDelay: 2000,
+      randomizeMoveDelay: true,
+      ...this.defaultOptions?.randomMove,
+      ...options
+    } satisfies RandomMoveOptions
+
+    try {
+      if (!this.moving) {
+        const rand = await getRandomPagePoint(this.page)
+        await this.moveMouse(rand, optionsResolved, true)
+      }
+      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
+      this.randomMove(options).then(
+        (_) => { },
+        (_) => { }
+      ) // fire and forget, recursive function
+    } catch (_) {
+      log('Warning: stopping random mouse movements')
+    }
+  }
+
   private async mouseButtonAction (
     action: Protocol.Input.DispatchMouseEventRequest['type'],
     options?: MouseButtonOptions
@@ -537,30 +562,6 @@ export class GhostCursor {
   /** Mouse button up (release) */
   async mouseUp (options?: MouseButtonOptions): Promise<void> {
     await this.mouseButtonAction('mouseReleased', options)
-  }
-
-  /** Start random mouse movements. Function recursively calls itself. */
-  private async randomMove (options?: RandomMoveOptions): Promise<void> {
-    const optionsResolved = {
-      moveDelay: 2000,
-      randomizeMoveDelay: true,
-      ...this.defaultOptions?.randomMove,
-      ...options
-    } satisfies RandomMoveOptions
-
-    try {
-      if (!this.moving) {
-        const rand = await getRandomPagePoint(this.page)
-        await this.moveMouse(rand, optionsResolved, true)
-      }
-      await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
-      this.randomMove(options).then(
-        (_) => { },
-        (_) => { }
-      ) // fire and forget, recursive function
-    } catch (_) {
-      log('Warning: stopping random mouse movements')
-    }
   }
 
   /** Toggles random mouse movements on or off. */
