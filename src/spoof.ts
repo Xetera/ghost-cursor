@@ -162,22 +162,61 @@ export type ScrollToDestination = Partial<Vector> | 'top' | 'bottom' | 'left' | 
 
 export type MouseButtonOptions = Pick<ClickOptions, 'button' | 'clickCount'>
 
+/**
+ * Default options for cursor functions.
+ */
+export interface DefaultOptions {
+  /**
+   * Default options for the `randomMove` function that occurs when `performRandomMoves=true`
+   * @default RandomMoveOptions
+   */
+  randomMove?: RandomMoveOptions
+  /**
+   * Default options for the `move` function
+   * @default MoveOptions
+   */
+  move?: MoveOptions
+  /**
+   * Default options for the `moveTo` function
+   * @default MoveToOptions
+   */
+  moveTo?: MoveToOptions
+  /**
+   * Default options for the `click` function
+   * @default ClickOptions
+   */
+  click?: ClickOptions
+  /**
+  * Default options for the `scrollIntoView`, `scrollTo`, and `scroll` functions
+  * @default ScrollIntoViewOptions
+  */
+  scroll?: ScrollOptions & ScrollIntoViewOptions
+  /**
+   * Default options for the `getElement` function
+   * @default GetElementOptions
+   */
+  getElement?: GetElementOptions
+}
+
 export interface GhostCursor {
   /** Toggles random mouse movements on or off. */
   toggleRandomMove: (random: boolean) => void
   /** Simulates a mouse click at the specified selector or element. */
   click: (
     selector?: string | ElementHandle,
+    /** @default defaultOptions.click */
     options?: ClickOptions
   ) => Promise<void>
   /** Moves the mouse to the specified selector or element. */
   move: (
     selector: string | ElementHandle,
+    /** @default defaultOptions.move */
     options?: MoveOptions
   ) => Promise<void>
   /** Moves the mouse to the specified destination point. */
   moveTo: (
     destination: Vector,
+    /** @default defaultOptions.moveTo */
     options?: MoveToOptions) => Promise<void>
   /** Moves the mouse by a specified amount */
   moveBy: (
@@ -187,14 +226,17 @@ export interface GhostCursor {
   /** Scrolls the element into view. If already in view, no scroll occurs. */
   scrollIntoView: (
     selector: ElementHandle,
+    /** @default defaultOptions.scroll */
     options?: ScrollIntoViewOptions) => Promise<void>
   /** Scrolls to the specified destination point. */
   scrollTo: (
     destination: ScrollToDestination,
+    /** @default defaultOptions.scroll */
     options?: ScrollOptions) => Promise<void>
   /** Scrolls the page the distance set by `delta`. */
   scroll: (
     delta: Partial<Vector>,
+    /** @default defaultOptions.scroll */
     options?: ScrollOptions) => Promise<void>
   /** Mouse button down */
   mouseDown: (options?: MouseButtonOptions) => Promise<void>
@@ -203,6 +245,7 @@ export interface GhostCursor {
   /** Gets the element via a selector. Can use an XPath. */
   getElement: (
     selector: string | ElementHandle,
+    /** @default defaultOptions.getElement */
     options?: GetElementOptions) => Promise<ElementHandle<Element>>
   /** Get current location of the cursor. */
   getLocation: () => Vector
@@ -328,7 +371,11 @@ export const getElementBox = async (
 export function path (
   start: Vector,
   end: Vector | BoundingBox,
-  /** Additional options for generating the path. Can also be a number which will set `spreadOverride`. */
+  /**
+   * Additional options for generating the path.
+   * Can also be a number which will set `spreadOverride`.
+   */
+  // TODO: remove number arg in next major version change, fine to just allow `spreadOverride` in object.
   options?: number | PathOptions): Vector[] | TimedVector[] {
   const optionsResolved: PathOptions = typeof options === 'number'
     ? { spreadOverride: options }
@@ -420,54 +467,33 @@ export const createCursor = (
    * @default false
    */
   performRandomMoves: boolean = false,
-  defaultOptions: {
-    /**
-     * Default options for the `randomMove` function that occurs when `performRandomMoves=true`
-     * @default RandomMoveOptions
-     */
-    randomMove?: RandomMoveOptions
-    /**
-     * Default options for the `move` function
-     * @default MoveOptions
-     */
-    move?: MoveOptions
-    /**
-     * Default options for the `moveTo` function
-     * @default MoveToOptions
-     */
-    moveTo?: MoveToOptions
-    /**
-     * Default options for the `click` function
-     * @default ClickOptions
-     */
-    click?: ClickOptions
-    /**
-    * Default options for the `scrollIntoView`, `scrollTo`, and `scroll` functions
-    * @default ScrollIntoViewOptions
-    */
-    scroll?: ScrollOptions & ScrollIntoViewOptions
-    /**
-     * Default options for the `getElement` function
-     * @default GetElementOptions
-     */
-    getElement?: GetElementOptions
-  } = {},
+  /**
+   * Default options for cursor functions.
+   */
+  defaultOptions: DefaultOptions = {},
+  /**
+   * Whether cursor should be made visible using `installMouseHelper`.
+   * @default false
+   */
   visible: boolean = false
 ): GhostCursor => {
   // this is kind of arbitrary, not a big fan but it seems to work
   const OVERSHOOT_SPREAD = 10
   const OVERSHOOT_RADIUS = 120
-  let previous: Vector = start
+  /** Location of the cursor. */
+  let location: Vector = start
 
   // Initial state: mouse is not moving
   let moving: boolean = false
 
-  /** Move the mouse over a number of vectors */
-  const tracePath = async (
-    vectors: Iterable<Vector | TimedVector>,
+  /** Move the mouse to a point, getting the vectors via `path(previous, newLocation, options)`  */
+  const moveMouse = async (
+    newLocation: Vector | BoundingBox,
+    options?: PathOptions,
     abortOnMove: boolean = false
   ): Promise<void> => {
     const cdpClient = getCDPClient(page)
+    const vectors = path(location, newLocation, options)
 
     for (const v of vectors) {
       try {
@@ -486,7 +512,7 @@ export const createCursor = (
 
         await cdpClient.send('Input.dispatchMouseEvent', dispatchParams)
 
-        previous = v
+        location = v
       } catch (error) {
         // Exit function if the browser is no longer connected
         if (!page.browser().isConnected()) return
@@ -495,6 +521,7 @@ export const createCursor = (
       }
     }
   }
+
   /** Start random mouse movements. Function recursively calls itself. */
   const randomMove = async (options?: RandomMoveOptions): Promise<void> => {
     const optionsResolved = {
@@ -507,8 +534,7 @@ export const createCursor = (
     try {
       if (!moving) {
         const rand = await getRandomPagePoint(page)
-        await tracePath(path(previous, rand, optionsResolved), true)
-        previous = rand
+        await moveMouse(rand, optionsResolved, true)
       }
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
       randomMove(options).then(
@@ -533,8 +559,8 @@ export const createCursor = (
 
     const cdpClient = getCDPClient(page)
     await cdpClient.send('Input.dispatchMouseEvent', {
-      x: previous.x,
-      y: previous.y,
+      x: location.x,
+      y: location.y,
       button: optionsResolved.button,
       clickCount: optionsResolved.clickCount,
       type: action
@@ -549,7 +575,7 @@ export const createCursor = (
 
     /** Get current location of the cursor. */
     getLocation (): Vector {
-      return previous
+      return location
     },
 
     /** Simulates a mouse click at the specified selector or element. */
@@ -619,13 +645,12 @@ export const createCursor = (
       } satisfies MoveOptions
 
       const wasRandom = !moving
+      actions.toggleRandomMove(false)
 
       const go = async (iteration: number): Promise<void> => {
         if (iteration > (optionsResolved.maxTries)) {
           throw Error('Could not mouse-over element within enough tries')
         }
-
-        actions.toggleRandomMove(false)
 
         const elem = await this.getElement(selector, optionsResolved)
 
@@ -633,41 +658,33 @@ export const createCursor = (
         await this.scrollIntoView(elem, optionsResolved)
 
         const box = await getElementBox(page, elem)
-        const { height, width } = box
         const destination = (optionsResolved.destination !== undefined)
           ? add(box, optionsResolved.destination)
           : getRandomBoxPoint(box, optionsResolved)
-        const dimensions = { height, width }
-        const overshooting = shouldOvershoot(
-          previous,
+        if (shouldOvershoot(
+          location,
           destination,
           optionsResolved.overshootThreshold
-        )
-        const to = overshooting
-          ? overshoot(destination, OVERSHOOT_RADIUS)
-          : destination
+        )) {
+          // overshoot
+          await moveMouse(overshoot(destination, OVERSHOOT_RADIUS), optionsResolved)
 
-        await tracePath(path(previous, to, optionsResolved))
-
-        if (overshooting) {
-          const correction = path(to, { ...dimensions, ...destination }, {
+          // then go to the box
+          await moveMouse({ ...box, ...destination }, {
             ...optionsResolved,
             spreadOverride: OVERSHOOT_SPREAD
           })
-
-          await tracePath(correction)
+        } else {
+          // go directly to the box, no overshoot
+          await moveMouse(destination, optionsResolved)
         }
-
-        previous = destination
-
-        actions.toggleRandomMove(true)
 
         const newBoundingBox = await getElementBox(page, elem)
 
         // It's possible that the element that is being moved towards
         // has moved to a different location by the time
         // the the time the mouseover animation finishes
-        if (!intersectsElement(to, newBoundingBox)) {
+        if (!intersectsElement(location, newBoundingBox)) {
           return await go(iteration + 1)
         }
       }
@@ -679,7 +696,10 @@ export const createCursor = (
     },
 
     /** Moves the mouse to the specified destination point. */
-    async moveTo (destination: Vector, options?: MoveToOptions): Promise<void> {
+    async moveTo (
+      destination: Vector,
+      options?: MoveToOptions
+    ): Promise<void> {
       const optionsResolved = {
         moveDelay: 0,
         randomizeMoveDelay: true,
@@ -689,7 +709,7 @@ export const createCursor = (
 
       const wasRandom = !moving
       actions.toggleRandomMove(false)
-      await tracePath(path(previous, destination, optionsResolved))
+      await moveMouse(destination, optionsResolved)
       actions.toggleRandomMove(wasRandom)
 
       await delay(optionsResolved.moveDelay * (optionsResolved.randomizeMoveDelay ? Math.random() : 1))
@@ -697,11 +717,14 @@ export const createCursor = (
 
     /** Moves the mouse by a specified amount */
     async moveBy (delta: Partial<Vector>, options?: MoveToOptions): Promise<void> {
-      await this.moveTo(add(previous, { x: 0, y: 0, ...delta }), options)
+      await this.moveTo(add(location, { x: 0, y: 0, ...delta }), options)
     },
 
     /** Scrolls the element into view. If already in view, no scroll occurs. */
-    async scrollIntoView (selector: string | ElementHandle, options?: ScrollIntoViewOptions): Promise<void> {
+    async scrollIntoView (
+      selector: string | ElementHandle,
+      options?: ScrollIntoViewOptions
+    ): Promise<void> {
       const optionsResolved = {
         scrollDelay: 200,
         scrollSpeed: 100,
@@ -820,7 +843,10 @@ export const createCursor = (
     },
 
     /** Scrolls the page the distance set by `delta`. */
-    async scroll (delta: Partial<Vector>, options?: ScrollOptions) {
+    async scroll (
+      delta: Partial<Vector>,
+      options?: ScrollOptions
+    ): Promise<void> {
       const optionsResolved = {
         scrollDelay: 200,
         scrollSpeed: 100,
@@ -872,8 +898,8 @@ export const createCursor = (
           type: 'mouseWheel',
           deltaX,
           deltaY,
-          x: previous.x,
-          y: previous.y
+          x: location.x,
+          y: location.y
         } satisfies Protocol.Input.DispatchMouseEventRequest)
       }
 
@@ -881,7 +907,10 @@ export const createCursor = (
     },
 
     /** Scrolls to the specified destination point. */
-    async scrollTo (destination: ScrollToDestination, options?: ScrollOptions) {
+    async scrollTo (
+      destination: ScrollToDestination,
+      options?: ScrollOptions
+    ): Promise<void> {
       const optionsResolved = {
         scrollDelay: 200,
         scrollSpeed: 100,
@@ -925,7 +954,10 @@ export const createCursor = (
     },
 
     /** Gets the element via a selector. Can use an XPath. */
-    async getElement (selector: string | ElementHandle, options?: GetElementOptions): Promise<ElementHandle<Element>> {
+    async getElement (
+      selector: string | ElementHandle,
+      options?: GetElementOptions
+    ): Promise<ElementHandle<Element>> {
       const optionsResolved = {
         ...defaultOptions?.getElement,
         ...options
