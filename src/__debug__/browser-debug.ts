@@ -44,6 +44,8 @@ puppeteer.launch({ headless: false }).then(async (browser) => {
 
     await cursor.click('#box2')
 
+    await cursor.removeMouseHelper()
+
     await cursor.click('#box3')
 
     await cursor.click('#box1')

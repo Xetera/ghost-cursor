@@ -406,7 +406,7 @@ export class GhostCursor {
   /** Whether mouse is moving via `click`, `move`, `moveTo`, etc. (does not include random movements). Initial state: not moving. */
   private moving: boolean = false
   /** Make the cursor no longer visible. Defined only if `visible=true` was passed, or `installMouseHelper` ran later. */
-  private removeMouseHelperFn: undefined | Promise<() => Promise<void>>
+  private removeMouseHelperFn: undefined | (() => Promise<void>)
 
   private static readonly OVERSHOOT_SPREAD = 10
   private static readonly OVERSHOOT_RADIUS = 120
@@ -421,25 +421,25 @@ export class GhostCursor {
     }:
     {
       /**
-       * Cursor start position.
-       * @default { x: 0, y: 0 }
-       */
+         * Cursor start position.
+         * @default { x: 0, y: 0 }
+         */
       start?: Vector
       /**
-       * Initially perform random movements.
-       * If `move`,`click`, etc. is performed, these random movements end.
-       * @default false
-       */
+         * Initially perform random movements.
+         * If `move`,`click`, etc. is performed, these random movements end.
+         * @default false
+         */
       performRandomMoves?: boolean
       /**
-       * Set custom default options for cursor action functions.
-       * Default values are described in the type JSdocs.
-       */
+         * Set custom default options for cursor action functions.
+         * Default values are described in the type JSdocs.
+         */
       defaultOptions?: DefaultOptions
       /**
-       * Whether cursor should be made visible using `installMouseHelper`.
-       * @default false
-       */
+         * Whether cursor should be made visible using `installMouseHelper`.
+         * @default false
+         */
       visible?: boolean
     } = {}
   ) {
@@ -449,7 +449,7 @@ export class GhostCursor {
 
     if (visible) {
       // Install mouse helper (visible mouse). Do not await the promise but return immediately
-      installMouseHelper(page).then(
+      this.installMouseHelper().then(
         (_) => { },
         (_) => { }
       )
@@ -468,8 +468,10 @@ export class GhostCursor {
    * Install mouse helper (visible cursor).
    */
   public async installMouseHelper (): Promise<void> {
-    this.removeMouseHelperFn = installMouseHelper(this.page).then(
-      ({ removeMouseHelper }) => removeMouseHelper)
+    await installMouseHelper(this.page).then(
+      ({ removeMouseHelper }) => {
+        this.removeMouseHelperFn = removeMouseHelper
+      })
   }
 
   /**
@@ -477,8 +479,7 @@ export class GhostCursor {
    * Only has an effect if `visible=true` was passed, or this.installMouseHelper performed manually.
    */
   public async removeMouseHelper (): Promise<void> {
-    if (this.removeMouseHelperFn == null) return
-    await (await this.removeMouseHelperFn)()
+    await this.removeMouseHelperFn?.()
     this.removeMouseHelperFn = undefined
   }
 
