@@ -1,5 +1,5 @@
 import type { ElementHandle, Page } from 'puppeteer'
-import { type ClickOptions, createCursor, GhostCursor } from '../spoof'
+import { type ClickOptions, GhostCursor } from '../spoof'
 import { join } from 'path'
 import { readFileSync } from 'fs'
 import { installMouseHelper } from '../mouse-helper'
@@ -35,10 +35,12 @@ describe('Mouse movements', () => {
       waitUntil: 'networkidle2'
     })
 
-    cursor = createCursor(page, undefined, undefined, {
-      move: cursorDefaultOptions,
-      click: cursorDefaultOptions,
-      moveTo: cursorDefaultOptions
+    cursor = new GhostCursor(page, {
+      defaultOptions: {
+        move: cursorDefaultOptions,
+        click: cursorDefaultOptions,
+        moveTo: cursorDefaultOptions
+      }
     })
   })
 
