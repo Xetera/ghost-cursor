@@ -16,6 +16,7 @@ import {
 } from './math'
 import { installMouseHelper } from './mouse-helper'
 
+// TODO: remove in next major version, is now wrapped in the GhostCursor class.
 export { installMouseHelper }
 
 const log = debug('ghost-cursor')
