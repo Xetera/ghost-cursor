@@ -397,33 +397,23 @@ const intersectsElement = (vec: Vector, box: BoundingBox): boolean => {
 }
 
 export class GhostCursor {
-  readonly page: Page
-  /**
-   * Initially perform random movements.
-   * If `move`,`click`, etc. is performed, these random movements end.
-   * @default false
-   */
-  public performRandomMoves: boolean
-  /**
-   * Default options for cursor functions.
-   */
+  public readonly page: Page
+  /** Default options for cursor functions. */
   public defaultOptions: DefaultOptions
-  /**
-   * Make the cursor no longer visible.
-   * Defined only if `visible=true` was passed.
-   */
-  public removeMouseHelper: undefined | Promise<() => Promise<void>>
 
   /** Location of the cursor. */
   private location: Vector
-  /** Whether mouse is moving. Initial state: not moving. */
+  /** Whether mouse is moving via `click`, `move`, `moveTo`, etc. (does not include random movements). Initial state: not moving. */
   private moving: boolean = false
+  /** Make the cursor no longer visible. Defined only if `visible=true` was passed, or `installMouseHelper` ran later. */
+  private removeMouseHelperFn: undefined | Promise<() => Promise<void>>
 
   private static readonly OVERSHOOT_SPREAD = 10
   private static readonly OVERSHOOT_RADIUS = 120
 
   constructor (
-    page: Page, {
+    page: Page,
+    {
       start = origin,
       performRandomMoves = false,
       defaultOptions = {},
@@ -431,37 +421,38 @@ export class GhostCursor {
     }:
     {
       /**
-           * Cursor start position.
-           * @default { x: 0, y: 0 }
-           */
+       * Cursor start position.
+       * @default { x: 0, y: 0 }
+       */
       start?: Vector
       /**
-           * Initially perform random movements.
-           * If `move`,`click`, etc. is performed, these random movements end.
-           * @default false
-           */
+       * Initially perform random movements.
+       * If `move`,`click`, etc. is performed, these random movements end.
+       * @default false
+       */
       performRandomMoves?: boolean
       /**
-           * Set custom default options for cursor action functions.
-           * Default values are described in the type JSdocs.
-           */
+       * Set custom default options for cursor action functions.
+       * Default values are described in the type JSdocs.
+       */
       defaultOptions?: DefaultOptions
       /**
-           * Whether cursor should be made visible using `installMouseHelper`.
-           * @default false
-           */
+       * Whether cursor should be made visible using `installMouseHelper`.
+       * @default false
+       */
       visible?: boolean
     } = {}
   ) {
     this.page = page
     this.location = start
-    this.performRandomMoves = performRandomMoves
     this.defaultOptions = defaultOptions
 
     if (visible) {
       // Install mouse helper (visible mouse). Do not await the promise but return immediately
-      this.removeMouseHelper = installMouseHelper(page).then(
-        ({ removeMouseHelper }) => removeMouseHelper)
+      installMouseHelper(page).then(
+        (_) => { },
+        (_) => { }
+      )
     }
 
     // Start random mouse movements. Do not await the promise but return immediately
@@ -471,6 +462,24 @@ export class GhostCursor {
         (_) => { }
       )
     }
+  }
+
+  /**
+   * Install mouse helper (visible cursor).
+   */
+  public async installMouseHelper (): Promise<void> {
+    this.removeMouseHelperFn = installMouseHelper(this.page).then(
+      ({ removeMouseHelper }) => removeMouseHelper)
+  }
+
+  /**
+   * Make the cursor no longer visible.
+   * Only has an effect if `visible=true` was passed, or this.installMouseHelper performed manually.
+   */
+  public async removeMouseHelper (): Promise<void> {
+    if (this.removeMouseHelperFn == null) return
+    await (await this.removeMouseHelperFn)()
+    this.removeMouseHelperFn = undefined
   }
 
   /** Move the mouse to a point, getting the vectors via `path(previous, newLocation, options)`  */
@@ -555,12 +564,12 @@ export class GhostCursor {
   }
 
   /** Mouse button down */
-  async mouseDown (options?: MouseButtonOptions): Promise<void> {
+  public async mouseDown (options?: MouseButtonOptions): Promise<void> {
     await this.mouseButtonAction('mousePressed', options)
   }
 
   /** Mouse button up (release) */
-  async mouseUp (options?: MouseButtonOptions): Promise<void> {
+  public async mouseUp (options?: MouseButtonOptions): Promise<void> {
     await this.mouseButtonAction('mouseReleased', options)
   }
 
