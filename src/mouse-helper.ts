@@ -1,5 +1,9 @@
 import type { Page } from 'puppeteer'
 
+interface WindowWithMouseHelper extends Window {
+  removeMouseHelper?: () => void
+}
+
 /**
  * This injects a box into the page that moves with the mouse.
  * Useful for debugging.
@@ -8,8 +12,6 @@ import type { Page } from 'puppeteer'
  */
 export async function installMouseHelper (page: Page):
 Promise<{ removeMouseHelper: () => Promise<void> }> {
-  let _removeMouseHelper: undefined | (() => void)
-
   const { identifier: evaluateOnNewDocumentId } = await page.evaluateOnNewDocument(() => {
     const attachListener = (): void => {
       const box = document.createElement('p-mouse-pointer')
@@ -99,7 +101,7 @@ Promise<{ removeMouseHelper: () => Promise<void> }> {
       document.addEventListener('mouseleave', onMouseLeave, true)
       document.addEventListener('mouseenter', onMouseEnter, true)
 
-      _removeMouseHelper = () => {
+      ;(window as WindowWithMouseHelper).removeMouseHelper = () => {
         document.removeEventListener('mousemove', onMouseMove, true)
         document.removeEventListener('mousedown', onMouseDown, true)
         document.removeEventListener('mouseup', onMouseUp, true)
@@ -118,11 +120,9 @@ Promise<{ removeMouseHelper: () => Promise<void> }> {
   })
 
   async function removeMouseHelper (): Promise<void> {
-    if (_removeMouseHelper !== undefined) {
-      await page.evaluate(() => {
-        _removeMouseHelper?.()
-      })
-    }
+    await page.evaluate(() => {
+      ;(window as WindowWithMouseHelper).removeMouseHelper?.()
+    })
 
     await page.removeScriptToEvaluateOnNewDocument(evaluateOnNewDocumentId)
   }

@@ -1,4 +1,4 @@
-import { type ClickOptions, createCursor } from '../spoof'
+import { type ClickOptions, GhostCursor } from '../spoof'
 import { join } from 'path'
 import { promises as fs } from 'fs'
 import puppeteer from 'puppeteer'
@@ -22,13 +22,16 @@ const cursorDefaultOptions = {
 puppeteer.launch({ headless: false }).then(async (browser) => {
   const page = await browser.newPage()
 
-  const cursor = createCursor(page, undefined, undefined, {
-    move: cursorDefaultOptions,
-    moveTo: cursorDefaultOptions,
-    click: cursorDefaultOptions,
-    scroll: cursorDefaultOptions,
-    getElement: cursorDefaultOptions
-  }, true)
+  const cursor = new GhostCursor(page, {
+    visible: true,
+    defaultOptions: {
+      move: cursorDefaultOptions,
+      moveTo: cursorDefaultOptions,
+      click: cursorDefaultOptions,
+      scroll: cursorDefaultOptions,
+      getElement: cursorDefaultOptions
+    }
+  })
 
   const html = await fs.readFile(join(__dirname, 'custom-page.html'), 'utf8')
 
@@ -40,6 +43,8 @@ puppeteer.launch({ headless: false }).then(async (browser) => {
     await cursor.click('#box1')
 
     await cursor.click('#box2')
+
+    await cursor.removeMouseHelper()
 
     await cursor.click('#box3')
 
