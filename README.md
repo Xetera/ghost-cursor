@@ -146,6 +146,13 @@ Moves the mouse to the specified destination point.
   - `moveSpeed (number):` Speed of mouse movement. Default is random.
   - `moveDelay (number):` Delay after moving the mouse in milliseconds. Default is `0`. If `randomizeMoveDelay=true`, delay is randomized from 0 to `moveDelay`.
   - `randomizeMoveDelay (boolean):` Randomize delay between actions from `0` to `moveDelay`. Default is `true`.
+
+#### `moveBy(delta: Vector, options?: MoveToOptions): Promise<void>`
+
+Moves the mouse by a specified amount.
+
+- **delta:** An object with `x` and `y` coordinates representing the distance to move. For example, `{ x: 10, y: 20 }`.
+- **options (optional):** Additional options for moving. Same as `moveTo` options
   
 #### `scrollIntoView(selector: string | ElementHandle, options?: ScrollIntoViewOptions) => Promise<void>`
 
@@ -172,6 +179,14 @@ Scrolls the page the distance set by `delta`.
 - **options (optional):** Additional options for scrolling.
   - `scrollSpeed (number):` Scroll speed. 0 to 100. 100 is instant. Default is `100`.
   - `scrollDelay (number):` Time to wait after scrolling. Default is `200`.
+
+#### `mouseDown / mouseUp: (options?: MouseButtonOptions) => Promise<void>`
+
+Mouse button up or down.
+
+- **options (optional):** Additional options for mouse action.
+  - `button (MouseButton):` Mouse button to click. Default is `left`.
+  - `clickCount (number):` Number of times to click the button. Default is `1`.
   
 #### `getElement(selector: string | ElementHandle, options?: GetElementOptions) => Promise<void>`
 

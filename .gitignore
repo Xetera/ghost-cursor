@@ -3,3 +3,5 @@ dist
 node_modules
 lib
 test.ts
+.yarn/
+.yarnrc
