@@ -18,8 +18,12 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
+          cache: yarn
+          cache-dependency-path: yarn.lock
           registry-url: 'https://registry.npmjs.org'
+      - name: Enable Corepack
+        run: corepack enable
       - name: Install dependencies and build
-        run: yarn
+        run: corepack yarn install --immutable
       - name: Publish to NPM
         run: npm publish

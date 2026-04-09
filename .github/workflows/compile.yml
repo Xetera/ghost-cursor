@@ -4,29 +4,24 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Node v20
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - name: Install Node
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
-      - name: Get yarn cache
-        id: yarn-cache
-        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v4
-        with:
-          path: ${{ steps.yarn-cache.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+          node-version: 24
+          cache: yarn
+          cache-dependency-path: yarn.lock
+      - name: Enable Corepack
+        run: corepack enable
       - name: Install dependencies and build
-        run: yarn
+        run: corepack yarn install --immutable
       - name: Run tests
         run: |
           # See: https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
           echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
-          yarn test
+          corepack yarn test
       - name: Upload compiled code as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ghost-cursor
           path: lib/
