@@ -5,6 +5,5 @@ lib
 test.ts
 .yarn/
 .yarnrc
-.yarnrc.yml
 .nvmrc
 .pnp.*
