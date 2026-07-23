@@ -164,7 +164,7 @@ Scrolls the element into view. If already in view, no scroll occurs.
   - `scrollDelay (number):` Time to wait after scrolling (when scrolling occurs). Default is `200`.
   - `inViewportMargin (number):` Margin (in px) to add around the element when ensuring it is in the viewport. Default is `0`.
 
-#### `scrollTo: (destination: ElementHandle | Partial<Vector> | 'top' | 'bottom' | 'left' | 'right', options?: ScrollOptions) => Promise<void>`
+#### `scrollTo: (destination: Partial<Vector> | 'top' | 'bottom' | 'left' | 'right' | ElementHandle, options?: ScrollOptions) => Promise<void>`
 
 Scrolls to the specified destination point.
 
