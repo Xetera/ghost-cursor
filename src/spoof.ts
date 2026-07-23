@@ -159,8 +159,6 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
   readonly moveDelay?: number
 }
 
-export type ScrollToDestination = Partial<Vector> | 'top' | 'bottom' | 'left' | 'right'
-
 export type MouseButtonOptions = Pick<ClickOptions, 'button' | 'clickCount'>
 
 /**
@@ -913,7 +911,7 @@ export class GhostCursor {
 
   /** Scrolls to the specified destination point. */
   public async scrollTo (
-    destination: ScrollToDestination,
+    destination: Partial<Vector> | 'top' | 'bottom' | 'left' | 'right' | ElementHandle,
     /** @default defaultOptions.scroll */
     options?: ScrollOptions
   ): Promise<void> {
@@ -938,7 +936,7 @@ export class GhostCursor {
       }
     ))
 
-    const to = ((): Partial<Vector> => {
+    const to: Partial<Vector> = await (async (): Promise<Partial<Vector>> => {
       switch (destination) {
         case 'top':
           return { y: 0 }
@@ -948,8 +946,20 @@ export class GhostCursor {
           return { x: 0 }
         case 'right':
           return { x: docWidth }
-        default:
+        default: {
+          const isElementHandle =
+        typeof destination === 'object' && 'evaluate' in destination
+
+          if (isElementHandle) {
+            const box = await destination.boundingBox()
+            if (box == null) {
+              throw new Error('no boundingBox')
+            }
+            return box
+          }
+
           return destination
+        }
       }
     })()
 
