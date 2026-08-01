@@ -513,7 +513,7 @@ export class GhostCursor {
         this.location = v
       } catch (error) {
         // Exit function if the browser is no longer connected
-        if (!this.page.browser().isConnected()) return
+        if (!this.page.browser().connected) return
 
         log('Warning: could not move mouse, error message:', error)
       }
