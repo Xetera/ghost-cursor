@@ -47,6 +47,9 @@ export interface GetElementOptions {
   readonly waitForSelector?: number
 }
 
+type PagePosition = 'top' | 'bottom' | 'left' | 'right'
+export type ScrollToDestination = Partial<Vector> | PagePosition | ElementHandle
+
 export interface ScrollOptions {
   /**
    * Scroll speed. 0 to 100. 100 is instant.
@@ -914,7 +917,7 @@ export class GhostCursor {
 
   /** Scrolls to the specified destination point. */
   public async scrollTo (
-    destination: Partial<Vector> | 'top' | 'bottom' | 'left' | 'right' | ElementHandle,
+    destination: ScrollToDestination,
     /** @default defaultOptions.scroll */
     options?: ScrollOptions
   ): Promise<void> {
