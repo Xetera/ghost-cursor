@@ -958,7 +958,11 @@ export class GhostCursor {
             if (box == null) {
               throw new Error('no boundingBox')
             }
-            return box
+            // boundingBox() is viewport-relative; convert to document-relative
+            return {
+              x: box.x + scrollPositionLeft,
+              y: box.y + scrollPositionTop
+            }
           }
 
           // Partial<Vector>

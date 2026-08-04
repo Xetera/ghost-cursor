@@ -110,6 +110,20 @@ describe('Mouse movements', () => {
     await cursor.scrollTo({ y: 200, x: 400 })
     expect(await getScrollPosition()).toEqual({ top: 200, left: 400 })
   })
+
+  it('Should scroll to an ElementHandle correctly from a non-zero scroll position', async () => {
+    const box2 = await page.waitForSelector('#box2') as ElementHandle<HTMLElement> | null
+    if (box2 == null) throw new Error('#box2 not found')
+
+    // Start from a non-zero scroll position so that boundingBox() returns
+    // viewport-relative coords that differ from document-relative coords.
+    await cursor.scrollTo({ y: 1000 })
+    expect(await getScrollPosition()).toEqual({ top: 1000, left: 0 })
+    expect(await box2.isIntersectingViewport()).toBeFalsy()
+
+    await cursor.scrollTo(box2)
+    expect(await box2.isIntersectingViewport()).toBeTruthy()
+  })
 })
 
 jest.setTimeout(15_000)
