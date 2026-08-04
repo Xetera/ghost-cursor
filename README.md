@@ -171,7 +171,7 @@ Scrolls to the specified destination point.
 - **destination:** Can be any of:
   - An object with `x` and `y` coordinates representing the target position. For example, `{ x: 500, y: 300 }`.
   - `'top'` or `'bottom'` or `'left'` or `'right'`.
-  - An ElementHandle.
+  - An ElementHandle (scrolls to the element's bounding box x/y coordinates).
 - **options (optional):** Additional options for scrolling. **Extends the `options` of the `scroll` function (below)**
 
 #### `scroll: (delta: Partial<Vector>, options?: ScrollOptions) => Promise<void>`
