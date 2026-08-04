@@ -488,6 +488,24 @@ export class GhostCursor {
     this.removeMouseHelperFn = undefined
   }
 
+  private async getPageState (): Promise<{
+    viewportWidth: number
+    viewportHeight: number
+    docHeight: number
+    docWidth: number
+    scrollPositionTop: number
+    scrollPositionLeft: number
+  }> {
+    return await this.page.evaluate(() => ({
+      viewportWidth: document.body.clientWidth,
+      viewportHeight: document.body.clientHeight,
+      docHeight: document.body.scrollHeight,
+      docWidth: document.body.scrollWidth,
+      scrollPositionTop: window.scrollY,
+      scrollPositionLeft: window.scrollX
+    }))
+  }
+
   /** Move the mouse to a point, getting the vectors via `path(previous, newLocation, options)`  */
   private async moveMouse (
     newLocation: BoundingBox | Vector,
@@ -752,16 +770,7 @@ export class GhostCursor {
       docWidth,
       scrollPositionTop,
       scrollPositionLeft
-    } = await this.page.evaluate(() => (
-      {
-        viewportWidth: document.body.clientWidth,
-        viewportHeight: document.body.clientHeight,
-        docHeight: document.body.scrollHeight,
-        docWidth: document.body.scrollWidth,
-        scrollPositionTop: window.scrollY,
-        scrollPositionLeft: window.scrollX
-      }
-    ))
+    } = await this.getPageState()
 
     const elemBoundingBox = await getElementBox(this.page, elem) // is relative to viewport
     const elemBox = {
@@ -933,14 +942,7 @@ export class GhostCursor {
       docWidth,
       scrollPositionTop,
       scrollPositionLeft
-    } = await this.page.evaluate(() => (
-      {
-        docHeight: document.body.scrollHeight,
-        docWidth: document.body.scrollWidth,
-        scrollPositionTop: window.scrollY,
-        scrollPositionLeft: window.scrollX
-      }
-    ))
+    } = await this.getPageState()
 
     const to: Partial<Vector> = await (async (): Promise<Partial<Vector>> => {
       switch (destination) {
