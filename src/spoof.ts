@@ -203,6 +203,9 @@ const delay = async (ms: number): Promise<void> => {
   return await new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+const isElementHandle = (item: any): item is ElementHandle =>
+  item !== null && item !== undefined && typeof item.asElement === 'function'
+
 /**
  * Calculate the amount of time needed to move from (x1, y1) to (x2, y2)
  * given the width of the element being clicked on
@@ -947,10 +950,7 @@ export class GhostCursor {
         case 'right':
           return { x: docWidth }
         default: {
-          const isElementHandle =
-        typeof destination === 'object' && 'evaluate' in destination
-
-          if (isElementHandle) {
+          if (isElementHandle(destination)) {
             const box = await destination.boundingBox()
             if (box == null) {
               throw new Error('no boundingBox')
@@ -958,6 +958,7 @@ export class GhostCursor {
             return box
           }
 
+          // Partial<Vector>
           return destination
         }
       }
