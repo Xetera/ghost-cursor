@@ -164,11 +164,14 @@ Scrolls the element into view. If already in view, no scroll occurs.
   - `scrollDelay (number):` Time to wait after scrolling (when scrolling occurs). Default is `200`.
   - `inViewportMargin (number):` Margin (in px) to add around the element when ensuring it is in the viewport. Default is `0`.
 
-#### `scrollTo: (destination: Partial<Vector> | 'top' | 'bottom' | 'left' | 'right', options?: ScrollOptions) => Promise<void>`
+#### `scrollTo: (destination: Partial<Vector> | 'top' | 'bottom' | 'left' | 'right' | ElementHandle, options?: ScrollOptions) => Promise<void>`
 
 Scrolls to the specified destination point.
 
-- **destination:** An object with `x` and `y` coordinates representing the target position. For example, `{ x: 500, y: 300 }`. Can also be `"top"` or `"bottom"`.
+- **destination:** Can be any of:
+  - An object with `x` and `y` coordinates representing the target position. For example, `{ x: 500, y: 300 }`.
+  - `'top'` or `'bottom'` or `'left'` or `'right'`.
+  - An ElementHandle (scrolls to the element's bounding box x/y coordinates).
 - **options (optional):** Additional options for scrolling. **Extends the `options` of the `scroll` function (below)**
 
 #### `scroll: (delta: Partial<Vector>, options?: ScrollOptions) => Promise<void>`

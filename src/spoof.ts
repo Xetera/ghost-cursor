@@ -47,6 +47,9 @@ export interface GetElementOptions {
   readonly waitForSelector?: number
 }
 
+type PagePosition = 'top' | 'bottom' | 'left' | 'right'
+export type ScrollToDestination = Partial<Vector> | PagePosition | ElementHandle
+
 export interface ScrollOptions {
   /**
    * Scroll speed. 0 to 100. 100 is instant.
@@ -159,8 +162,6 @@ export interface MoveToOptions extends PathOptions, Pick<MoveOptions, 'moveDelay
   readonly moveDelay?: number
 }
 
-export type ScrollToDestination = Partial<Vector> | 'top' | 'bottom' | 'left' | 'right'
-
 export type MouseButtonOptions = Pick<ClickOptions, 'button' | 'clickCount'>
 
 /**
@@ -204,6 +205,9 @@ const delay = async (ms: number): Promise<void> => {
   if (ms < 1) return
   return await new Promise((resolve) => setTimeout(resolve, ms))
 }
+
+const isElementHandle = (item: any): item is ElementHandle =>
+  item !== null && item !== undefined && typeof item.asElement === 'function'
 
 /**
  * Calculate the amount of time needed to move from (x1, y1) to (x2, y2)
@@ -484,6 +488,24 @@ export class GhostCursor {
     this.removeMouseHelperFn = undefined
   }
 
+  private async getPageState (): Promise<{
+    viewportWidth: number
+    viewportHeight: number
+    docHeight: number
+    docWidth: number
+    scrollPositionTop: number
+    scrollPositionLeft: number
+  }> {
+    return await this.page.evaluate(() => ({
+      viewportWidth: document.body.clientWidth,
+      viewportHeight: document.body.clientHeight,
+      docHeight: document.body.scrollHeight,
+      docWidth: document.body.scrollWidth,
+      scrollPositionTop: window.scrollY,
+      scrollPositionLeft: window.scrollX
+    }))
+  }
+
   /** Move the mouse to a point, getting the vectors via `path(previous, newLocation, options)`  */
   private async moveMouse (
     newLocation: BoundingBox | Vector,
@@ -748,16 +770,7 @@ export class GhostCursor {
       docWidth,
       scrollPositionTop,
       scrollPositionLeft
-    } = await this.page.evaluate(() => (
-      {
-        viewportWidth: document.body.clientWidth,
-        viewportHeight: document.body.clientHeight,
-        docHeight: document.body.scrollHeight,
-        docWidth: document.body.scrollWidth,
-        scrollPositionTop: window.scrollY,
-        scrollPositionLeft: window.scrollX
-      }
-    ))
+    } = await this.getPageState()
 
     const elemBoundingBox = await getElementBox(this.page, elem) // is relative to viewport
     const elemBox = {
@@ -929,16 +942,9 @@ export class GhostCursor {
       docWidth,
       scrollPositionTop,
       scrollPositionLeft
-    } = await this.page.evaluate(() => (
-      {
-        docHeight: document.body.scrollHeight,
-        docWidth: document.body.scrollWidth,
-        scrollPositionTop: window.scrollY,
-        scrollPositionLeft: window.scrollX
-      }
-    ))
+    } = await this.getPageState()
 
-    const to = ((): Partial<Vector> => {
+    const to: Partial<Vector> = await (async (): Promise<Partial<Vector>> => {
       switch (destination) {
         case 'top':
           return { y: 0 }
@@ -948,8 +954,22 @@ export class GhostCursor {
           return { x: 0 }
         case 'right':
           return { x: docWidth }
-        default:
+        default: {
+          if (isElementHandle(destination)) {
+            const box = await destination.boundingBox()
+            if (box == null) {
+              throw new Error('no boundingBox')
+            }
+            // boundingBox() is viewport-relative; convert to document-relative
+            return {
+              x: box.x + scrollPositionLeft,
+              y: box.y + scrollPositionTop
+            }
+          }
+
+          // Partial<Vector>
           return destination
+        }
       }
     })()
 
